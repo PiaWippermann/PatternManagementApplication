@@ -1,0 +1,25 @@
+.pattern-creation-content {
+  max-width: 600px;
+  margin: 2rem auto;
+}
+
+.pattern-form label {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.pattern-form input,
+.pattern-form textarea,
+.pattern-form select {
+  width: 100%;
+  padding: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.pattern-form button {
+  padding: 0.5rem 1rem;
+  background-color: #0366d6;
+  color: white;
+  border: none;
+  cursor: pointer;
+}

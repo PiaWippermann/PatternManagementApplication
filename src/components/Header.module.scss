@@ -1,0 +1,29 @@
+@use "../styles/base/variables" as *;
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: $color-surface;
+    color: $color-on-surface;
+    padding: 1rem 2rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+    .app-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+    }
+
+    .theme-toggle {
+        background: none;
+        border: none;
+        font-size: 1.25rem;
+        cursor: pointer;
+        color: $color-on-surface;
+        transition: color 0.2s ease;
+
+        &:hover {
+            color: $color-primary;
+        }
+    }
+}
