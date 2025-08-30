@@ -1,3 +1,5 @@
+// this file contains types related to GitHub GraphQL API responses
+
 export interface Author {
   login: string;
   avatarUrl: string;

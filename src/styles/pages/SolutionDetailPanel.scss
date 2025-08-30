@@ -43,17 +43,20 @@
       display: flex;
       gap: 0.5rem;
     }
+
     .solution-title {
       font-size: 1.5rem;
       font-weight: 600;
       color: $color-on-surface;
       margin-bottom: 0.5rem;
     }
+
     .solution-description {
       font-size: 1rem;
       color: $color-on-surface;
       margin-bottom: 1rem;
     }
+
     .solution-meta {
       font-size: 0.875rem;
       color: $color-on-surface-variant;
@@ -80,7 +83,7 @@
           gap: 0.5rem;
         }
 
-        .pattern-title {
+        .item-title {
           font-size: 1.1rem;
           font-weight: 600;
           color: $color-on-surface;
@@ -120,6 +123,7 @@
   from {
     transform: translateX(100%);
   }
+
   to {
     transform: translateX(0);
   }
@@ -129,6 +133,7 @@
   from {
     transform: translateX(0);
   }
+
   to {
     transform: translateX(100%);
   }

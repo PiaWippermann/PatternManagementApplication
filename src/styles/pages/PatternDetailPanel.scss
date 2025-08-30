@@ -39,7 +39,8 @@
       display: flex;
       gap: 0.5rem;
     }
-    .pattern-title {
+
+    .item-title {
       font-size: 1.5rem;
       font-weight: 600;
       color: $color-on-surface;
@@ -52,15 +53,25 @@
         vertical-align: middle;
       }
     }
+
     .pattern-description {
       font-size: 1rem;
       color: $color-on-surface;
       margin-bottom: 1rem;
     }
+
     .pattern-meta {
       font-size: 0.875rem;
       color: $color-on-surface-variant;
       margin-bottom: 1rem;
+
+      img {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        margin-right: 0.5rem;
+        vertical-align: middle;
+      }
     }
 
     .pattern-linked-solutions {
@@ -117,6 +128,7 @@
   from {
     transform: translateX(100%);
   }
+
   to {
     transform: translateX(0);
   }

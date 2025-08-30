@@ -142,7 +142,7 @@ const SolutionDetailPanel = () => {
                   />
                   <span>{pattern?.category.name}</span>
                 </div>
-                <div className="pattern-title">
+                <div className="item-title">
                   {/* Ensure pattern?.icon is a valid URL or handle null/undefined */}
                   {pattern?.icon && (
                     <img src={pattern?.icon} alt="Pattern Icon" />

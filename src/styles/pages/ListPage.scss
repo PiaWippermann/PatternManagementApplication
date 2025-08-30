@@ -1,0 +1,68 @@
+@use "../base/variables" as *;
+
+.list-page {
+  display: flex;
+  flex-direction: column;
+  padding: 1.5rem;
+  flex: 1;
+}
+
+h1 {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 1rem;
+  border-bottom: 1px solid #ccc;
+  color: $color-primary;
+  background-color: var($color-surface);
+  flex-shrink: 0;
+}
+
+ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.item-list {
+  flex-grow: 1;
+  flex-shrink: 0;
+  overflow-y: auto;
+  padding: 1rem;
+  margin: 0;
+  list-style: none;
+
+  min-height: 0;
+}
+
+.pagination-container {
+  position: sticky;
+  bottom: 0;
+  background-color: white;
+  flex-shrink: 0;
+}
+
+.item-card {
+  background-color: $color-surface;
+  border: 1px solid $color-primary;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 20px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .item-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: $color-on-surface;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+  }
+}

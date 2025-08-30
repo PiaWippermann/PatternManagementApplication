@@ -1,0 +1,32 @@
+.pagination-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 2rem;
+    gap: 1rem; // Fügt einen Abstand zwischen den Buttons hinzu
+}
+
+.pagination-button {
+    background-color: #007bff; // Standard-Button-Farbe
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+
+    &:hover {
+        background-color: #0056b3; // Dunklere Farbe beim Hover
+    }
+
+    &:active {
+        transform: translateY(1px); // Drückt den Button leicht nach unten
+    }
+
+    &:disabled {
+        background-color: #cccccc; // Graue Farbe, wenn der Button deaktiviert ist
+        cursor: not-allowed;
+        transform: none; // Entfernt den Effekt beim Drücken
+    }
+}

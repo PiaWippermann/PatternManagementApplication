@@ -2,87 +2,151 @@
 
 import { GraphQLClient, gql } from "graphql-request";
 import type {
-  DiscussionsResponse,
+  BaseDiscussion,
   DiscussionCreationResponse,
   DiscussionUpdateResponse,
 } from "../types/GitHub";
+import type { RepositoryIds } from "../types/DiscussionData";
 
+// load environment variables for repository owner, and repository name
 const owner = import.meta.env.VITE_REPO_OWNER;
 const repo = import.meta.env.VITE_REPO_NAME;
+const endpoint = import.meta.env.VITE_GITHUB_ENDPOINT;
+
+// for now, we use the PAT token, but in future we want to implement OAuth flow
 const token =
   localStorage.getItem("github_auth_token") || import.meta.env.VITE_GITHUB_PAT;
 
-const endpoint = "https://api.github.com/graphql";
-
+// initialize the GraphQL client with the endpoint and authorization header
 const client = new GraphQLClient(endpoint, {
   headers: {
     Authorization: `Bearer ${token}`,
   },
 });
 
-export const loadDiscussions = async () => {
-  const query = gql`
-    query GetDiscussions($owner: String!, $repo: String!) {
-      repository(owner: $owner, name: $repo) {
-        discussions(first: 100) {
-          nodes {
-            id
-            number
-            author {
-              avatarUrl
-              login
-            }
-            body
-            category {
-              id
-              name
-              description
-              emojiHTML
-            }
-            createdAt
-            title
-            url
-            viewerCanDelete
-            viewerCanUpdate
-            comments(first: 100) {
-              nodes {
-                author {
-                  login
-                  avatarUrl
-                }
-                body
-                id
-                publishedAt
-                reactions(first: 10) {
-                  nodes {
-                    content
-                    user {
-                      name
-                      avatarUrl
-                    }
-                  }
-                }
+// Queries and mutations defined below
+
+// Query to get repository and discussion category IDs
+const GET_REPO_IDS_QUERY = gql`
+  query GetIds($owner: String!, $name: String!) {
+    repository(owner: $owner, name: $name) {
+      id
+      discussionCategories(first: 100) {
+        nodes {
+          id
+          name
+        }
+      }
+    }
+  }
+`;
+
+// Query to get a discussion by its ID
+const GET_SIMPLE_DISCUSSION_BY_NUMBER_QUERY = gql`
+  query GetDiscussionByNumber($repoOwner: String!, $repoName: String!, $discussionNumber: Int!) {
+  repository(owner: $repoOwner, name: $repoName) {
+    discussion(number: $discussionNumber) {
+      id
+      number
+      author {
+        avatarUrl
+        login
+      }
+      body
+      category {
+        id
+        name
+        description
+        emojiHTML
+      }
+      createdAt
+      title
+      url
+      viewerCanDelete
+      viewerCanUpdate
+    }
+  }
+}
+`;
+
+// Includes comments and reactions in the query
+const GET_MAPPING_DISCUSSION_BY_NUMBER_QUERY = gql`
+  query GetDiscussionByNumber($repoOwner: String!, $repoName: String!, $discussionNumber: Int!) {
+  repository(owner: $repoOwner, name: $repoName) {
+    discussion(number: $discussionNumber) {
+      id
+      number
+      author {
+        avatarUrl
+        login
+      }
+      body
+      category {
+        id
+        name
+        description
+        emojiHTML
+      }
+      createdAt
+      title
+      url
+      viewerCanDelete
+      viewerCanUpdate
+      comments(first: 20) {
+        nodes {
+          id
+          body
+          publishedAt
+          author {
+            login
+            avatarUrl
+          }
+          reactions(first: 10) {
+            nodes {
+              content
+              user {
+                login
+                avatarUrl
               }
             }
           }
         }
       }
+      reactions(first: 10) {
+        nodes {
+          content
+          user {
+            login
+            avatarUrl
+          }
+        }
+      }
     }
-  `;
+  }
+}
+`;
 
-  const variables = { owner, repo };
+// Query to get discussion base information with pagination and by category
+const GET_DISCUSSIONS_QUERY = gql`
+  query GetDiscussions($first: Int!, $after: String, $categoryId: ID!, $owner: String!, $repo: String!) {
+    repository(owner: $owner, name: $repo) {
+      discussions(first: $first, after: $after, categoryId: $categoryId) {
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+        nodes {
+          id
+          title
+          number
+        }
+      }
+    }
+  }
+`;
 
-  const data = await client.request<DiscussionsResponse>(query, variables);
-  return data.repository.discussions.nodes;
-};
-
-export const createDiscussion = async (
-  title: string,
-  body: string,
-  categoryId: string,
-  repositoryId: string
-) => {
-  const mutation = gql`
+// Mutation to create a discussion
+const CREATE_DISCUSSION_MUTATION = gql`
     mutation CreateDiscussion($input: CreateDiscussionInput!) {
       createDiscussion(input: $input) {
         discussion {
@@ -94,27 +158,8 @@ export const createDiscussion = async (
     }
   `;
 
-  const variables = {
-    input: {
-      repositoryId: repositoryId,
-      title,
-      body,
-      categoryId,
-    },
-  };
-
-  const response = await client.request<DiscussionCreationResponse>(
-    mutation,
-    variables
-  );
-  return response.createDiscussion.discussion;
-};
-
-export const updateDiscussionBody = async (
-  discussionId: string,
-  newBody: string
-) => {
-  const mutation = gql`
+// Mutation to update a discussion
+const UPDATE_DISCUSSION_MUTATION = gql`
     mutation UpdateDiscussion($input: UpdateDiscussionInput!) {
       updateDiscussion(input: $input) {
         discussion {
@@ -161,6 +206,117 @@ export const updateDiscussionBody = async (
     }
   `;
 
+/**
+ * Gets a paginated list of discussions for a given category.
+ * This category can be either referred to as "Patterns" or "Realizations".
+ * * @param categoryId 
+ * @param cursor 
+ * @param pageSize 
+ * @returns 
+ */
+export const getDiscussionsListData = async (
+  categoryId: string,
+  cursor: string | null,
+  pageSize: number = 10
+) => {
+  // Add owner and repo to the variables object
+  const variables = { first: pageSize, after: cursor, categoryId, owner, repo };
+
+  const data = await client.request<{
+    repository: {
+      discussions: {
+        pageInfo: {
+          endCursor: string;
+          hasNextPage: boolean;
+        };
+        nodes: { id: string; title: string, number: number }[];
+      };
+    };
+  }>(GET_DISCUSSIONS_QUERY, variables);
+
+  return data.repository.discussions;
+};
+
+/**
+ * Fetches the IDs of the repository and the relevant discussion categories.
+ * @returns IDs of the repository and the relevant discussion categories
+ */
+export const getRepositoryIds = async (): Promise<RepositoryIds> => {
+  const variables = { owner, name: repo };
+
+  const data = await client.request<{
+    repository: {
+      id: string;
+      discussionCategories: { nodes: { id: string; name: string }[] };
+    };
+  }>(GET_REPO_IDS_QUERY, variables);
+
+  const repositoryId = data.repository.id;
+  let solutionImplementationCategoryId = "";
+  let patternCategoryId = "";
+
+  for (const category of data.repository.discussionCategories.nodes) {
+    if (category.name === "Solution Implementations") {
+      solutionImplementationCategoryId = category.id;
+    } else if (category.name === "Patterns") {
+      patternCategoryId = category.id;
+    }
+  }
+
+  if (!solutionImplementationCategoryId || !patternCategoryId) {
+    throw new Error("One or more discussion categories not found");
+  }
+
+  return { repositoryId, patternCategoryId, solutionImplementationCategoryId };
+};
+
+/**
+ * Mutation to create a new discussion.
+ * Used when creating new patterns or solution implementations.
+ * @param title 
+ * @param body 
+ * @param categoryId 
+ * @param repositoryId 
+ * @returns 
+ */
+export const createDiscussion = async (
+  title: string,
+  body: string,
+  categoryId: string,
+  repositoryId: string
+) => {
+  const mutation = CREATE_DISCUSSION_MUTATION;
+
+  const variables = {
+    input: {
+      repositoryId: repositoryId,
+      title,
+      body,
+      categoryId,
+    },
+  };
+
+  const response = await client.request<DiscussionCreationResponse>(
+    mutation,
+    variables
+  );
+
+  return response.createDiscussion.discussion;
+};
+
+/**
+ * Mutation to update the body of a discussion.
+ * Used when editing patterns or solution implementations.
+ * @param discussionId 
+ * @param newBody 
+ * @returns 
+ */
+export const updateDiscussionBody = async (
+  discussionId: string,
+  newBody: string
+) => {
+  const mutation = UPDATE_DISCUSSION_MUTATION;
+
   const variables = {
     input: {
       discussionId: discussionId,
@@ -175,19 +331,28 @@ export const updateDiscussionBody = async (
   return response.updateDiscussion;
 };
 
-export const getRepositoryId = async (): Promise<string> => {
-  const query = gql`
-    query GetRepoId($owner: String!, $name: String!) {
-      repository(owner: $owner, name: $name) {
-        id
-      }
-    }
-  `;
+/**
+ * Given a discussion ID, fetches the corresponding discussion details from GitHub.
+ * This method is used when navigating to the detail view of a pattern or solution implementation.
+ * For loading the pattern - solution implementation links a different method is used as additional comments are needed.
+ * @param discussionId
+ * @returns 
+ */
+export const getDiscussionDetails = async (discussionNumber: number, isMappingDiscussion: boolean = false) => {
+  let query = "";
+  if (!isMappingDiscussion) {
+    query = GET_SIMPLE_DISCUSSION_BY_NUMBER_QUERY;
+  } else {
+    query = GET_MAPPING_DISCUSSION_BY_NUMBER_QUERY;
+  }
 
-  const response = await client.request<{ repository: { id: string } }>(query, {
-    owner,
-    name: repo,
-  });
+  // 💡 Die Variablen müssen mit den Variablennamen im GraphQL-Query übereinstimmen
+  const variables = {
+    discussionNumber,
+    repoOwner: owner,
+    repoName: repo
+  };
 
-  return response.repository.id;
+  const data = await client.request<{ repository: { discussion: BaseDiscussion } }>(query, variables);
+  return data.repository.discussion;
 };

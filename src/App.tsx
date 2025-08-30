@@ -4,14 +4,11 @@ import { AuthProvider, useAuth } from "./auth/AuthContext";
 import AppLayout from "./layout/AppLayout";
 import LoginPage from "./auth/LoginPage";
 import { JSX } from "react";
-import Dashboard from "./pages/Dashboard";
-import Patterns from "./pages/patterns/Patterns";
-import PatternDetailPanel from "./pages/patterns/PatternDetailPanel";
-import CreatePattern from "./pages/patterns/CreatePattern";
-import SolutionDetailPanel from "./pages/solutions/SolutionDetailPanel";
-import Solutions from "./pages/solutions/Solutions";
+import Patterns from "./pages/patterns/PatternList";
+import PatternDetailPanel from "./pages/patterns/PatternDetail";
+import SolutionDetailPanel from "./pages/solutions/SolutionDetail";
+import Solutions from "./pages/solutions/SolutionImplementationList";
 import { DiscussionDataProvider } from "./context/DiscussionDataContext";
-import CreateSolution from "./pages/solutions/CreateSolution";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
   const { isAuthenticated } = useAuth();
@@ -30,14 +27,11 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Dashboard />} />
         <Route path="patterns" element={<Patterns />}>
-          <Route path=":patternId" element={<PatternDetailPanel />} />
-          <Route path="new" element={<CreatePattern />} />
+          <Route path=":patternNumber" element={<PatternDetailPanel />} />
         </Route>
         <Route path="solutions" element={<Solutions />}>
           <Route path=":solutionId" element={<SolutionDetailPanel />} />
-          <Route path="new" element={<CreateSolution />} />
         </Route>
       </Route>
     </Routes>
