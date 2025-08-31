@@ -5,9 +5,11 @@ import AppLayout from "./layout/AppLayout";
 import LoginPage from "./auth/LoginPage";
 import { JSX } from "react";
 import Patterns from "./pages/patterns/PatternList";
-import PatternDetailPanel from "./pages/patterns/PatternDetail";
-import SolutionDetailPanel from "./pages/solutions/SolutionDetail";
-import Solutions from "./pages/solutions/SolutionImplementationList";
+import PatternDetail from "./pages/patterns/PatternDetail";
+import SolutionDetail from "./pages/solutions/SolutionDetail";
+import SolutionImplementations from "./pages/solutions/SolutionImplementationList";
+import CreateSolution from "./pages/solutions/CreateSolution";
+import CreatePattern from "./pages/patterns/CreatePattern";
 import { DiscussionDataProvider } from "./context/DiscussionDataContext";
 
 function ProtectedRoute({ children }: { children: JSX.Element }) {
@@ -28,10 +30,12 @@ function AppRoutes() {
         }
       >
         <Route path="patterns" element={<Patterns />}>
-          <Route path=":patternNumber" element={<PatternDetailPanel />} />
+          <Route path=":patternNumber" element={<PatternDetail />} />
+          <Route path="create" element={<CreatePattern />} />
         </Route>
-        <Route path="solutions" element={<Solutions />}>
-          <Route path=":solutionId" element={<SolutionDetailPanel />} />
+        <Route path="solutionImplementations" element={<SolutionImplementations />}>
+          <Route path=":solutionImplementationNumber" element={<SolutionDetail />} />
+          <Route path="create" element={<CreateSolution />} />
         </Route>
       </Route>
     </Routes>

@@ -62,7 +62,7 @@ function SolutionImplementationList() {
           <li
             key={solImpl.number}
             className="item-card"
-            onClick={() => navigate(`/solutionImplementation/${solImpl.number}`)}
+            onClick={() => navigate(`/solutionImplementations/${solImpl.number}`)}
           >
             <div className="item-title">
               {solImpl.title}
@@ -76,6 +76,7 @@ function SolutionImplementationList() {
   return (
     <div className="list-page">
       <h1>Solution Implementation</h1>
+      <button className="create-button" onClick={() => navigate('/solutionImplementations/create')}>Create New Solution Implementation</button>
       {content}
       <Outlet />
       <Pagination

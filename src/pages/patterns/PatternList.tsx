@@ -76,6 +76,7 @@ function PatternList() {
   return (
     <div className="list-page">
       <h1>Patterns</h1>
+      <button onClick={() => navigate('/patterns/create')} className="create-button">Create New Pattern</button>
       {content}
       <Outlet />
       <Pagination

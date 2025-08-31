@@ -7,50 +7,68 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
 
 const CreatePattern = () => {
-  const { data, loading, error, repositoryId } = useDiscussionData();
+  const { loading, error, ids, addNewPatternData } = useDiscussionData();
+  // State to manage submission status
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const navigate = useNavigate();
 
   const close = () => navigate("/patterns");
 
-  if (loading) return <div>Lade Patterns...</div>;
-  if (error) return <div>Fehler: {error}</div>;
-  if (!data) return <p>Keine Daten verfügbar.</p>;
+  if (loading) return <div>Loading patterns...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [referenceUrl, setReferenceUrl] = useState("");
   const [iconUrl, setIconUrl] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
-  const { discussionCategories } = data;
-  const patternCategories = discussionCategories.filter(
-    (cat) => cat.type == "Patterns"
-  );
+  const repositoryId = ids?.repositoryId || "";
+  const patternCategoryId = ids?.patternCategoryId || "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCategoryId) {
-      alert("Bitte eine Kategorie auswählen.");
+    setIsSubmitting(true); // Set submitting state to true
+
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!repositoryId || !patternCategoryId) {
+      alert("Repository ID or Category ID is missing.");
+      return;
+    }
+
+    if (!title || !description || !referenceUrl) {
+      alert("Please fill in all required fields.");
       return;
     }
 
     try {
-      await createPattern({
+      const patternCreationResponse = await createPattern({
         repositoryId: repositoryId,
-        categoryId: selectedCategoryId,
+        categoryId: patternCategoryId,
         title,
         description,
         referenceUrl,
         iconUrl: iconUrl || undefined,
       });
-      alert("Pattern erfolgreich erstellt!");
+      alert("Pattern created successfully!");
+
+      // Add the pattern to the discussion data context
+      // This ensures the new pattern appears in the list without needing a full refresh
+      if (addNewPatternData && patternCreationResponse) {
+        addNewPatternData(patternCreationResponse);
+      }
 
       // redirect back to patterns
       navigate("/patterns");
     } catch (err) {
-      console.error("Fehler beim Erstellen:", err);
-      alert("Erstellen fehlgeschlagen.");
+      console.error("Error while creating:", err);
+      alert("Creation failed.");
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
     }
   };
 
@@ -65,10 +83,10 @@ const CreatePattern = () => {
       </button>
 
       <div className="pattern-creation-content">
-        <h2>Pattern erstellen</h2>
+        <h2>Create Pattern</h2>
         <form onSubmit={handleSubmit} className="pattern-form">
           <label>
-            Titel:
+            Title:
             <input
               type="text"
               value={title}
@@ -78,7 +96,7 @@ const CreatePattern = () => {
           </label>
 
           <label>
-            Beschreibung:
+            Description:
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -87,7 +105,7 @@ const CreatePattern = () => {
           </label>
 
           <label>
-            Referenz-URL:
+            Reference URL:
             <input
               type="string"
               value={referenceUrl}
@@ -97,7 +115,7 @@ const CreatePattern = () => {
           </label>
 
           <label>
-            Icon-URL (optional):
+            Icon URL (optional):
             <input
               type="url"
               value={iconUrl}
@@ -105,23 +123,7 @@ const CreatePattern = () => {
             />
           </label>
 
-          <label>
-            Kategorie:
-            <select
-              value={selectedCategoryId}
-              onChange={(e) => setSelectedCategoryId(e.target.value)}
-              required
-            >
-              <option value="">-- auswählen --</option>
-              {patternCategories.map((cat) => (
-                <option key={cat.categoryId} value={cat.categoryId}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button type="submit">Erstellen</button>
+          <button type="submit">Create</button>
         </form>
       </div>
     </div>

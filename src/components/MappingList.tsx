@@ -1,17 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useDiscussionData } from '../context/DiscussionDataContext';
 import { useNavigate } from 'react-router-dom';
-import { BaseDiscussion } from '../types/GitHub';
+import Comment from './Comment';
+import { PatternSolutionMapping, SolutionImplementation, Pattern } from '../types/DiscussionData';
 
 type MappingListProps = {
     linkedNumbers: number[];
-    sourceType: 'patterns' | 'solutionImplementations';
+    sourceNumber: number;
 };
 
-const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceType }) => {
-    const { discussionData, loading, error, ids, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber } = useDiscussionData();
-    const navigate = useNavigate();
-    const [mappingDiscussions, setMappingDiscussions] = useState<(BaseDiscussion | undefined)[]>([]);
+const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber }) => {
+    const { loading, error, ids, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber } = useDiscussionData();
+    const [mappingDiscussions, setMappingDiscussions] = useState<(PatternSolutionMapping | undefined)[]>([]);
+    const [mappingTargetDetails, setMappingTargetDetails] = useState<{ [key: number]: { details: SolutionImplementation | Pattern | undefined, isVisible: boolean } }>({});
+    const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
 
     useEffect(() => {
         const loadMappedDiscussions = async () => {
@@ -40,7 +42,62 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceType }) 
         };
 
         loadMappedDiscussions();
-    }, [linkedNumbers, sourceType, fetchMappingDiscussionByNumber]);
+    }, [linkedNumbers, fetchMappingDiscussionByNumber]);
+
+    /**
+     * Fetches the details of the mapped discussion
+     * That is the solution implementation if the source is a pattern
+     * Or the pattern if the source is a solution implementation
+     * 
+     * @param discussion The discussion that was clicked
+     * @returns 
+     */
+    const handleMappingClick = async (discussion: PatternSolutionMapping | undefined) => {
+        if (!discussion) return;
+
+        // Check if we already have the details
+        if (mappingTargetDetails[discussion.number]) {
+            // Toggle visibility
+            setMappingTargetDetails(prevDetails => ({
+                ...prevDetails,
+                [discussion.number]: {
+                    ...prevDetails[discussion.number],
+                    isVisible: !prevDetails[discussion.number].isVisible
+                }
+            }));
+            return;
+        }
+
+        setIsLoadingDetails(true);
+
+        // The sourceNumber is given
+        // Check the parameter field to determine if it's a pattern or solution implementation
+        const isSourcePattern = discussion.patternDiscussionNumber === sourceNumber;
+        const targetDiscussionNumber = isSourcePattern ? discussion.solutionImplementationDiscussionNumber : discussion.patternDiscussionNumber;
+        const targetCategoryId = isSourcePattern ? ids.solutionImplementationCategoryId : ids.patternCategoryId;
+
+        if (!targetDiscussionNumber || !targetCategoryId) {
+            console.error("Category ID or discussion number is missing.");
+            setIsLoadingDetails(false);
+            return;
+        }
+
+        const details = await fetchDiscussionDetailsByNumber(targetCategoryId, targetDiscussionNumber);
+        console.log("Fetched details for mapping:", details);
+
+        if (details) {
+            // Initialize the state variable with the fetched details and the discussion.number as key
+            setMappingTargetDetails(prevDetails => ({
+                ...prevDetails,
+                [discussion.number]: {
+                    details: details,
+                    isVisible: true
+                }
+            }));
+        }
+
+        setIsLoadingDetails(false);
+    };
 
     if (loading && mappingDiscussions.length === 0) {
         return <p>Loading mappings content...</p>;
@@ -58,8 +115,27 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceType }) 
         <div className="mapping-list-container">
             <ul>
                 {mappingDiscussions.map((discussion) => (
-                    <li key={discussion?.id} className="mapping-item">
+                    <li key={discussion?.id} className="mapping-item" onClick={() => handleMappingClick(discussion)}>
                         <span className="mapping-title">{discussion?.title}</span>
+                        {discussion && mappingTargetDetails[discussion?.number] && mappingTargetDetails[discussion?.number].isVisible && (
+                            <div className="linked-details-container">
+                                {isLoadingDetails ? (
+                                    <p>Lade Details...</p>
+                                ) : (
+                                    <>
+                                        <h3>{mappingTargetDetails[discussion?.number].details?.title}</h3>
+                                        <p>{mappingTargetDetails[discussion?.number].details?.description}</p>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                        <ul>
+                            {discussion?.comments.nodes.map((comment) => (
+                                <li key={comment.id} className="comment-item">
+                                    <Comment commentData={comment} />
+                                </li>
+                            ))}
+                        </ul>
                     </li>
                 ))}
             </ul>

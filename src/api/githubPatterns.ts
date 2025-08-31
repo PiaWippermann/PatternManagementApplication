@@ -1,4 +1,5 @@
 import { createDiscussion } from "./githubQueries";
+import { Pattern } from "../types/DiscussionData";
 
 export async function createPattern({
   repositoryId,
@@ -22,7 +23,24 @@ ${description}
 
 # Pattern Reference
 [${title}](${referenceUrl})
+
+# Solution Implementations
   `.trim();
 
-  return createDiscussion(title, body, categoryId, repositoryId);
+  const response = await createDiscussion(title, body, categoryId, repositoryId);
+  if (!response) {
+    throw new Error("Failed to create pattern discussion");
+  }
+
+  // Create a Pattern object to return
+  const pattern: Pattern = {
+    ...response,
+    title,
+    description,
+    patternRef: referenceUrl,
+    icon: iconUrl || "",
+    mappings: []
+  };
+
+  return pattern;
 }

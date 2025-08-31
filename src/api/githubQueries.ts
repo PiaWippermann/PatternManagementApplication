@@ -153,6 +153,50 @@ const CREATE_DISCUSSION_MUTATION = gql`
           id
           title
           url
+          number
+          author {
+            avatarUrl
+            login
+          }
+          category {
+            id
+            name
+            description
+            emojiHTML
+          }
+          createdAt
+          body
+          viewerCanDelete
+          viewerCanUpdate
+          comments(first: 100) {
+            nodes {
+              author {
+                login
+                avatarUrl
+              }
+              body
+              id
+              publishedAt
+              reactions(first: 10) {
+                nodes {
+                  content
+                  user {
+                    name
+                    avatarUrl
+                  }
+                }
+              }
+            }
+          }
+          reactions(first: 10) {
+            nodes {
+              content
+              user {
+                login
+                avatarUrl
+              }
+            }
+          }
         }
       }
     }

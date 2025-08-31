@@ -17,8 +17,8 @@ const Sidebar = () => {
           Patterns
         </NavLink>
         <div className="separator"></div>
-        <NavLink to="/solutions" className={styles.navLink}>
-          Solutions
+        <NavLink to="/solutionImplementations" className={styles.navLink}>
+          Solution Implementations
         </NavLink>
       </nav>
     </aside>

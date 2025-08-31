@@ -7,48 +7,71 @@ import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
 
 const CreateSolution = () => {
-  const { data, loading, error, repositoryId } = useDiscussionData();
+  const { loading, error, ids, addNewSolutionImplementationData } = useDiscussionData();
+  // State to manage submission status
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
 
   const navigate = useNavigate();
 
-  const close = () => navigate("/solutions");
+  const close = () => navigate("/solutionImplementations");
 
-  if (loading) return <div>Lade Solutions...</div>;
-  if (error) return <div>Fehler: {error}</div>;
-  if (!data) return <p>Keine Daten verfügbar.</p>;
+  if (loading) return <div>Loading solutions...</div>;
+  if (error) return <div>Error: {error}</div>;
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [solutionsUrl, setSolutionsUrl] = useState("");
-  const [selectedCategoryId, setSelectedCategoryId] = useState("");
 
-  const { discussionCategories } = data;
-  const solutionCategories = discussionCategories.filter(
-    (cat) => cat.type == "Realizations"
-  );
+  const repositoryId = ids?.repositoryId || "";
+  const solutionImplementationCategoryId = ids?.solutionImplementationCategoryId || "";
+
+  // The following variables are referenced but not defined in the original code:
+  // selectedCategoryId, setSelectedCategoryId, solutionCategories
+  // You may need to define them or remove the category selection if not needed.
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedCategoryId) {
-      alert("Bitte eine Kategorie auswählen.");
+    setIsSubmitting(true); // Set submitting state to true
+
+    // Prevent multiple submissions
+    if (isSubmitting) {
+      return;
+    }
+
+    if (!repositoryId || !solutionImplementationCategoryId) {
+      alert("Repository ID or Category ID is missing.");
+      return;
+    }
+
+    if (!title || !description || !solutionsUrl) {
+      alert("Please fill in all required fields.");
       return;
     }
 
     try {
-      await createSolution({
+      const solutionImplementationResponse = await createSolution({
         repositoryId: repositoryId,
-        categoryId: selectedCategoryId,
+        categoryId: solutionImplementationCategoryId,
         title,
         description,
         solutionsUrl,
       });
-      alert("Solution erfolgreich erstellt!");
+      alert("Solution created successfully!");
+
+      // Add the solution to the discussion data context
+      // This ensures the new solution appears in the list without needing a full refresh
+      if (addNewSolutionImplementationData) {
+        addNewSolutionImplementationData(solutionImplementationResponse);
+      }
 
       // redirect back to solutions
-      navigate("/solutions");
+      navigate("/solutionImplementations");
     } catch (err) {
-      console.error("Fehler beim Erstellen:", err);
-      alert("Erstellen fehlgeschlagen.");
+      console.error("Error while creating:", err);
+      alert("Creation failed.");
+    } finally {
+      setIsSubmitting(false); // Reset submitting state
     }
   };
 
@@ -63,10 +86,10 @@ const CreateSolution = () => {
       </button>
 
       <div className="solution-creation-content">
-        <h2>Solution erstellen</h2>
+        <h2>Create Solution Implementation</h2>
         <form onSubmit={handleSubmit} className="solution-form">
           <label>
-            Titel:
+            Title:
             <input
               type="text"
               value={title}
@@ -76,7 +99,7 @@ const CreateSolution = () => {
           </label>
 
           <label>
-            Beschreibung:
+            Description:
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
@@ -85,7 +108,7 @@ const CreateSolution = () => {
           </label>
 
           <label>
-            Solution-URL:
+            Solution URL:
             <input
               type="string"
               value={solutionsUrl}
@@ -94,23 +117,7 @@ const CreateSolution = () => {
             />
           </label>
 
-          <label>
-            Kategorie:
-            <select
-              value={selectedCategoryId}
-              onChange={(e) => setSelectedCategoryId(e.target.value)}
-              required
-            >
-              <option value="">-- auswählen --</option>
-              {solutionCategories.map((cat) => (
-                <option key={cat.categoryId} value={cat.categoryId}>
-                  {cat.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <button type="submit">Erstellen</button>
+          <button type="submit">Create</button>
         </form>
       </div>
     </div>

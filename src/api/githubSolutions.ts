@@ -1,4 +1,5 @@
 import { createDiscussion, updateDiscussionBody } from "./githubQueries";
+import { SolutionImplementation } from "../types/DiscussionData";
 
 export async function createSolution({
   repositoryId,
@@ -23,7 +24,21 @@ ${description}
 # Patterns
   `.trim();
 
-  return createDiscussion(title, body, categoryId, repositoryId);
+  const response = await createDiscussion(title, body, categoryId, repositoryId);
+  if (!response) {
+    throw new Error("Failed to create pattern discussion");
+  }
+
+  // Create a Pattern object to return
+  const solutionImplementation: SolutionImplementation = {
+    ...response,
+    title,
+    description,
+    solutionRefUrl: solutionsUrl,
+    mappings: []
+  };
+
+  return solutionImplementation;
 }
 
 export async function updateLinkedPatterns({

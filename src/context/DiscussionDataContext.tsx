@@ -13,16 +13,16 @@ import {
   SolutionImplementation,
   PatternSolutionMapping
 } from "../types/DiscussionData";
-import {
-  BaseDiscussion
-} from "../types/GitHub";
 
 // Define the shape of the context
 type DiscussionDataContextType = {
   discussionData: DiscussionData;
   fetchDiscussionList: (categoryId: string, cursor: string | null) => Promise<void>;
   fetchDiscussionDetailsByNumber: (categoryId: string, discussionNumber: number) => Promise<Pattern | SolutionImplementation | undefined>;
-  fetchMappingDiscussionByNumber: (discussionNumber: number) => Promise<BaseDiscussion | undefined>;
+  fetchMappingDiscussionByNumber: (discussionNumber: number) => Promise<PatternSolutionMapping | undefined>;
+  addNewPatternData?: (newPattern: Pattern) => void;
+  addNewSolutionImplementationData?: (newSolutionImplementation: SolutionImplementation) => void;
+  addNewMappingData?: (newMapping: PatternSolutionMapping) => void;
   ids: RepositoryIds;
   loading: boolean;
   error: string | null;
@@ -46,6 +46,9 @@ const DiscussionDataContext = createContext<DiscussionDataContextType>({
   fetchDiscussionList: async () => { },
   fetchDiscussionDetailsByNumber: async () => { return undefined; },
   fetchMappingDiscussionByNumber: async () => { return undefined },
+  addNewPatternData: () => { },
+  addNewSolutionImplementationData: () => { },
+  addNewMappingData: () => { },
   ids: {
     repositoryId: "",
     solutionImplementationCategoryId: "",
@@ -56,7 +59,7 @@ const DiscussionDataContext = createContext<DiscussionDataContextType>({
 });
 
 // Define constants for pagination and category IDs
-const PAGE_SIZE = 1; // Number of items per page
+const PAGE_SIZE = 10; // Number of items per page
 
 // Custom hook to use the DiscussionDataContext
 export const useDiscussionData = () => useContext(DiscussionDataContext);
@@ -167,6 +170,8 @@ export const DiscussionDataProvider: React.FC<{
 
     try {
       const response = await getDiscussionDetails(discussionNumber);
+
+      console.log("response for discussion details", response);
 
       if (!response) {
         setError("Discussion not found.");
@@ -292,6 +297,124 @@ export const DiscussionDataProvider: React.FC<{
     }
   }, []);
 
+  // Add a new pattern to the context state
+  const addNewPatternData = (newPattern: Pattern) => {
+    setDiscussionData(prevData => {
+      // 1. Create a new patterns object with the new pattern added to details
+      const newPatterns = {
+        ...prevData.patterns,
+        details: [newPattern, ...prevData.patterns.details],
+        listData: { ...prevData.patterns.listData }
+      };
+
+      // 2. Update the listData to include the new pattern in the first page if it exists
+      const firstPage = newPatterns.listData['null']
+        ? { ...newPatterns.listData['null'] }
+        : null;
+
+      if (firstPage) {
+        // 3. Create a simplified object for the list
+        const simplifiedPattern = {
+          id: newPattern.id,
+          title: newPattern.title,
+          number: newPattern.number,
+        };
+
+        firstPage.discussions = [simplifiedPattern, ...firstPage.discussions];
+
+        if (firstPage.discussions.length > PAGE_SIZE) {
+          firstPage.discussions.pop();
+          const keysToRemove = Object.keys(newPatterns.listData).filter(key => key !== 'null');
+          for (const key of keysToRemove) {
+            delete newPatterns.listData[key];
+          }
+        }
+        // 4. Update the first page in listData
+        newPatterns.listData['null'] = firstPage;
+      } else {
+        newPatterns.listData['null'] = {
+          discussions: [{
+            id: newPattern.id,
+            title: newPattern.title,
+            number: newPattern.number,
+          }],
+          pageInfo: {
+            endCursor: null,
+            hasNextPage: false,
+          },
+        };
+      }
+
+      return {
+        ...prevData,
+        patterns: newPatterns
+      };
+    });
+  };
+
+  // Add a new solution implementation to the context state
+  const addNewSolutionImplementationData = (newSolutionImplementation: SolutionImplementation) => {
+    setDiscussionData(prevData => {
+      // 1. Create a new solutionImplementations object with the new solution added to details
+      const newSolutions = {
+        ...prevData.solutionImplementations,
+        details: [newSolutionImplementation, ...prevData.solutionImplementations.details],
+        listData: { ...prevData.solutionImplementations.listData }
+      };
+
+      // 2. Update the listData to include the new solution in the first page if it exists
+      const firstPage = newSolutions.listData['null']
+        ? { ...newSolutions.listData['null'] }
+        : null; // 'null' key for the first page
+
+      if (firstPage) {
+        // 3. Create a simplified object for the list
+        const simplifiedSolution = {
+          id: newSolutionImplementation.id,
+          title: newSolutionImplementation.title,
+          number: newSolutionImplementation.number,
+        };
+
+        firstPage.discussions = [simplifiedSolution, ...firstPage.discussions];
+        if (firstPage.discussions.length > PAGE_SIZE) {
+          firstPage.discussions.pop();
+          const keysToRemove = Object.keys(newSolutions.listData).filter(key => key !== 'null');
+          for (const key of keysToRemove) {
+            delete newSolutions.listData[key];
+          }
+        }
+        // 4. Update the first page in listData
+        newSolutions.listData['null'] = firstPage;
+      }
+      else {
+        newSolutions.listData['null'] = {
+          discussions: [{
+            id: newSolutionImplementation.id,
+            title: newSolutionImplementation.title,
+            number: newSolutionImplementation.number,
+          }],
+          pageInfo: {
+            endCursor: null,
+            hasNextPage: false,
+          },
+        };
+      }
+
+      return {
+        ...prevData,
+        solutionImplementations: newSolutions
+      };
+    });
+  };
+
+  // Add a new mapping to the context state
+  const addNewMappingData = (newMapping: PatternSolutionMapping) => {
+    setDiscussionData(prevData => ({
+      ...prevData,
+      patternSolutionMappings: [newMapping, ...prevData.patternSolutionMappings],
+    }));
+  };
+
   // fetch repo ids on mount
   useEffect(() => {
     fetchRepoIds();
@@ -300,7 +423,7 @@ export const DiscussionDataProvider: React.FC<{
   return (
     <DiscussionDataContext.Provider
       value={{
-        ids, loading, error, discussionData, fetchDiscussionList, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber
+        ids, loading, error, discussionData, fetchDiscussionList, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, addNewPatternData, addNewSolutionImplementationData, addNewMappingData
       }}
     >
       {children}
@@ -406,96 +529,3 @@ function parseSolutionBody(body: string): {
     mappings: patternLinkMatches,
   };
 }
-
-/* function splitDiscussionData(discussions: BaseDiscussion[]): DiscussionData {
-  const patterns: Pattern[] = [];
-  const solutions: Solution[] = [];
-  const discussionCategories: DiscussionCategories[] = [];
-
-  // map to group discussions by category
-  const categoryMap = new Map<string, BaseDiscussion[]>();
-
-  // Phase 1: Populate categoryMap and initialize discussionCategories
-  for (const discussion of discussions) {
-    const category = discussion.category;
-    if (!category?.name) continue;
-
-    if (!categoryMap.has(category.name)) {
-      categoryMap.set(category.name, []);
-      discussionCategories.push({
-        name: category.name,
-        emojiHTML: category.emojiHTML,
-        categoryId: category.id,
-        type: "Realizations", // Default type
-      });
-    }
-    categoryMap.get(category.name)!.push(discussion);
-  }
-
-  // Phase 2: Process categories and populate patterns/solutions
-  for (const [categoryName, items] of categoryMap.entries()) {
-    if (categoryName === "Patterns") {
-      // Update the type for the "Patterns" category
-      const patternCategory = discussionCategories.find(
-        (cat) => cat.name === "Patterns"
-      );
-      if (patternCategory) {
-        patternCategory.type = "Patterns";
-      }
-
-      // Process "Patterns" discussions
-      for (const item of items) {
-        const patternData = parsePatternBody(item.body);
-        patterns.push({
-          id: item.id,
-          number: item.number,
-          title: item.title,
-          url: item.url,
-          body: item.body,
-          category: item.category,
-          createdAt: item.createdAt,
-          viewerCanUpdate: item.viewerCanUpdate,
-          viewerCanDelete: item.viewerCanDelete,
-          author: item.author,
-          comments: item.comments,
-          reactions: item.reactions,
-          icon: patternData.icon || "",
-          description: patternData.description || "",
-          patternRef: patternData.patternRef || "",
-        });
-      }
-    } else {
-      // Process "Realizations" (other categories)
-      for (const item of items) {
-        const solutionData = parseSolutionBody(item.body);
-        solutions.push({
-          id: item.id,
-          number: item.number,
-          title: item.title,
-          url: item.url,
-          body: item.body,
-          category: item.category,
-          createdAt: item.createdAt,
-          viewerCanUpdate: item.viewerCanUpdate,
-          viewerCanDelete: item.viewerCanDelete,
-          author: item.author,
-          description: solutionData.description || "",
-          solutionRefUrl: solutionData.solutionRefUrl || "",
-          comments: item.comments,
-          reactions: item.reactions,
-          linkedPatterns: solutionData.linkedPatterns,
-        });
-      }
-    }
-  }
-
-  console.log("Patterns found:", patterns);
-  console.log("Solutions found:", solutions);
-
-  return {
-    patterns,
-    solutions,
-    discussionCategories,
-  };
-}
- */

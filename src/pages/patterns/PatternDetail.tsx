@@ -5,9 +5,8 @@ import { useDiscussionData } from "../../context/DiscussionDataContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
 import MappingList from "../../components/MappingList";
-import { parse } from "path";
 
-const PatternDetailPanel = () => {
+const PatternDetail = () => {
   // use params to get the pattern number from the URL 
   const { patternNumber } = useParams();
 
@@ -69,7 +68,7 @@ const PatternDetailPanel = () => {
         <div className="pattern-linked-solutions">
           <h3>Linked Solutions:</h3>
           <MappingList
-            sourceType="patterns"
+            sourceNumber={patternDetails.number}
             linkedNumbers={patternDetails.mappings}
           />
         </div>
@@ -95,4 +94,4 @@ const PatternDetailPanel = () => {
   );
 };
 
-export default PatternDetailPanel;
+export default PatternDetail;

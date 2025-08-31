@@ -30,7 +30,7 @@ export type DiscussionData = {
       [cursor: string]: {
         discussions: { id: string; title: string, number: number }[];
         pageInfo: {
-          endCursor: string;
+          endCursor: string | null;
           hasNextPage: boolean;
         };
       };
@@ -43,7 +43,7 @@ export type DiscussionData = {
       [cursor: string]: {
         discussions: { id: string; title: string, number: number }[];
         pageInfo: {
-          endCursor: string;
+          endCursor: string | null;
           hasNextPage: boolean;
         };
       };
