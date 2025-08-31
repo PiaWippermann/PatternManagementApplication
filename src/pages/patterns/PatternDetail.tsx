@@ -10,7 +10,7 @@ const PatternDetail = () => {
   // use params to get the pattern number from the URL 
   const { patternNumber } = useParams();
 
-  const { discussionData, loading, error, fetchDiscussionDetailsByNumber, ids } = useDiscussionData();
+  const { loading, error, fetchDiscussionDetailsByNumber, ids } = useDiscussionData();
   const navigate = useNavigate();
 
   // State for loaded details
@@ -70,6 +70,7 @@ const PatternDetail = () => {
           <MappingList
             sourceNumber={patternDetails.number}
             linkedNumbers={patternDetails.mappings}
+            sourceCategory="patterns"
           />
         </div>
 

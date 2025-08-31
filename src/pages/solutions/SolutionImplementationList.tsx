@@ -1,71 +1,66 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useDiscussionData } from '../../context/DiscussionDataContext';
 import Pagination from '../../components/Pagination';
+import { SimpleDiscussion } from '../../types/GitHub';
+import { ListData, PageInfo } from '../../types/DiscussionData';
 import '../../styles/pages/ListPage.scss';
 
 function SolutionImplementationList() {
-  const { loading, error, ids, discussionData, fetchDiscussionList } = useDiscussionData();
+  const { loading, error, ids, fetchDiscussionList } = useDiscussionData();
   const navigate = useNavigate();
 
-  // State for page navigation
+  const [solutionImplementations, setSolutionImplementations] = useState<SimpleDiscussion[]>([]);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
+
   const [pageHistory, setPageHistory] = useState<Array<string | null>>([null]);
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
 
-  // Get the current solution implementations data from the discussionData object
-  const currentCursor = pageHistory[currentPageIndex];
-  const currentSolutionImplementationsPage = discussionData?.solutionImplementations.listData[currentCursor || 'null'];
-  const solutionImplementations = currentSolutionImplementationsPage?.discussions || [];
-  const pageInfo = currentSolutionImplementationsPage?.pageInfo;
+  const handleListDataFetched = useCallback((data: ListData) => {
+    setSolutionImplementations(data.discussions);
+    setPageInfo(data.pageInfo);
+  }, []);
 
-  // Fetch the initial page of solutions implementations when the component first mounts
+  // Use Effect reacts to changing the page index
   useEffect(() => {
-    if (ids.solutionImplementationCategoryId && !discussionData.solutionImplementations.listData['null']) {
-      fetchDiscussionList(ids.solutionImplementationCategoryId, null);
-    }
-  }, [fetchDiscussionList, ids, discussionData]);
+    if (!ids.solutionImplementationCategoryId) return;
+    const cursor = pageHistory[currentPageIndex];
 
-  // Handle pagination for loading the next/previous page of solutions implementations
-  const handlePageChange = (cursor: string | null) => {
-    const isBackNavigation = currentPageIndex > 0 && cursor === pageHistory[currentPageIndex - 1];
+    // List data are fetched, inside this method it is checked if data can be used from cache
+    fetchDiscussionList(ids.solutionImplementationCategoryId, cursor, handleListDataFetched);
+  }, [currentPageIndex, pageHistory, fetchDiscussionList, ids, handleListDataFetched]);
 
-    if (isBackNavigation) {
-      setCurrentPageIndex(prevIndex => prevIndex - 1);
-    } else {
-      // check if we already have the data for the requested cursor
-      if (discussionData?.solutionImplementations.listData[cursor || 'null']) {
-        setPageHistory(prevHistory => [...prevHistory, cursor]);
-        setCurrentPageIndex(prevIndex => prevIndex + 1);
-        return;
-      }
-
-      // If not, fetch the data
-      fetchDiscussionList(ids.solutionImplementationCategoryId, cursor);
-      setPageHistory(prevHistory => [...prevHistory, cursor]);
+  // Handle pagination for loading the next/previous page of solutionImplementations
+  const handleNextPage = () => {
+    const nextCursor = pageInfo?.endCursor || null;
+    if (nextCursor) {
+      setPageHistory(prevHistory => [...prevHistory, nextCursor]);
       setCurrentPageIndex(prevIndex => prevIndex + 1);
     }
   };
 
-  // Lade-, Fehler- und leere Zustände in einer separaten Variable speichern
-  let content;
+  const handlePrevPage = () => {
+    setCurrentPageIndex(prevIndex => prevIndex - 1);
+  };
 
+  let content;
   if (loading && solutionImplementations.length === 0) {
-    content = <p>Load Solution Implementations</p>;
+    content = <p>Lade SolutionImplementations...</p>;
   } else if (error) {
     content = <p>Fehler beim Laden: {error}</p>;
   } else if (solutionImplementations.length === 0) {
-    content = <p>Keine Solution Implementations gefunden.</p>;
+    content = <p>Keine SolutionImplementations gefunden.</p>;
   } else {
     content = (
       <ul className="item-list">
-        {solutionImplementations.map((solImpl) => (
+        {solutionImplementations.map((solutionImplementation) => (
           <li
-            key={solImpl.number}
+            key={solutionImplementation.number}
             className="item-card"
-            onClick={() => navigate(`/solutionImplementations/${solImpl.number}`)}
+            onClick={() => navigate(`/solutionImplementations/${solutionImplementation.number}`)}
           >
             <div className="item-title">
-              {solImpl.title}
+              {solutionImplementation.title}
             </div>
           </li>
         ))}
@@ -75,15 +70,15 @@ function SolutionImplementationList() {
 
   return (
     <div className="list-page">
-      <h1>Solution Implementation</h1>
-      <button className="create-button" onClick={() => navigate('/solutionImplementations/create')}>Create New Solution Implementation</button>
+      <h1>SolutionImplementations</h1>
+      <button onClick={() => navigate('/solutionImplementations/create')} className="create-button">Create New SolutionImplementation</button>
       {content}
       <Outlet />
       <Pagination
-        onPageChange={handlePageChange}
-        prevCursor={pageHistory[currentPageIndex - 1]}
-        nextCursor={pageInfo?.endCursor || null}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
         hasNextPage={pageInfo?.hasNextPage || false}
+        isBackDisabled={currentPageIndex === 0}
         loading={loading}
       />
     </div>

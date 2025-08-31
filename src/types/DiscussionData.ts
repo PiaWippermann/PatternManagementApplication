@@ -1,7 +1,6 @@
 // this file contains types related to discussions, patterns, and solution implementations and pattern-solution implementation links
 
-import { BaseDiscussion } from "./GitHub";
-import { Reaction, Comment } from "./GitHub";
+import { BaseDiscussion, SimpleDiscussion } from "./GitHub";
 
 export interface Pattern extends BaseDiscussion {
   icon: string;
@@ -21,32 +20,30 @@ export interface PatternSolutionMapping extends BaseDiscussion {
   solutionImplementationDiscussionNumber: number;
 };
 
+export interface PageInfo {
+  endCursor: string | null;
+  hasNextPage: boolean;
+};
+
+export type ListData = {
+  discussions: SimpleDiscussion[];
+  pageInfo: PageInfo;
+};
+
 export type DiscussionData = {
   patterns: {
     details: Pattern[];
     // Cache for the list data, indexed by the 'endCursor' of the previous page.
     // The first entry is stored under the key 'null'.
     listData: {
-      [cursor: string]: {
-        discussions: { id: string; title: string, number: number }[];
-        pageInfo: {
-          endCursor: string | null;
-          hasNextPage: boolean;
-        };
-      };
+      [cursor: string]: ListData;
     };
     currentPageCursor: string | null;
   };
   solutionImplementations: {
     details: SolutionImplementation[];
     listData: {
-      [cursor: string]: {
-        discussions: { id: string; title: string, number: number }[];
-        pageInfo: {
-          endCursor: string | null;
-          hasNextPage: boolean;
-        };
-      };
+      [cursor: string]: ListData;
     };
     currentPageCursor: string | null;
   };
@@ -58,17 +55,3 @@ export type RepositoryIds = {
   solutionImplementationCategoryId: string;
   patternCategoryId: string;
 };
-
-// not used for now but keep it because of the comments and reactions
-/* export type DiscussionData = {
-  patterns: Pattern[];
-  solutions: Solution[];
-  discussionCategories: DiscussionCategories[];
-};
-
-export type DiscussionCategories = {
-  name: string;
-  emojiHTML: string;
-  categoryId: string;
-  type: string;
-}; */

@@ -30,6 +30,12 @@ export interface DiscussionCategory {
   emojiHTML: string;
 }
 
+export type SimpleDiscussion = {
+  id: string;
+  number: number;
+  title: string;
+}
+
 export interface BaseDiscussion {
   id: string;
   number: number;

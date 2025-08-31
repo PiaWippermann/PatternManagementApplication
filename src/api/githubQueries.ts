@@ -5,6 +5,7 @@ import type {
   BaseDiscussion,
   DiscussionCreationResponse,
   DiscussionUpdateResponse,
+  Comment
 } from "../types/GitHub";
 import type { RepositoryIds } from "../types/DiscussionData";
 
@@ -250,6 +251,22 @@ const UPDATE_DISCUSSION_MUTATION = gql`
     }
   `;
 
+// Corrected Mutation to add a discussion comment
+const ADD_DISCUSSION_COMMENT = gql`
+  mutation AddDiscussionComment($discussionId: ID!, $body: String!) {
+    addDiscussionComment(input: {discussionId: $discussionId, body: $body}) {
+      comment {
+        id
+        body
+        publishedAt
+        author {
+          login
+          avatarUrl
+        }
+      }
+    }
+  }
+`;
 /**
  * Gets a paginated list of discussions for a given category.
  * This category can be either referred to as "Patterns" or "Realizations".
@@ -400,3 +417,24 @@ export const getDiscussionDetails = async (discussionNumber: number, isMappingDi
   const data = await client.request<{ repository: { discussion: BaseDiscussion } }>(query, variables);
   return data.repository.discussion;
 };
+
+/**
+ * Creates a comment with given text (body) for a given discussion.
+ * Used to comment on mapping discussions
+ * @param discussionId 
+ * @param body 
+ * @returns 
+ */
+export const createDiscussionComment = async (discussionId: string, body: string) => {
+  const mutation = ADD_DISCUSSION_COMMENT;
+
+  const variables = {
+    discussionId,
+    body
+  };
+
+  const response = await client.request<{ comment: Comment }>(mutation, variables);
+  console.log("Comment created", response);
+
+  return response.comment;
+}

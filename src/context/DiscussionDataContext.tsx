@@ -11,13 +11,19 @@ import {
   RepositoryIds,
   Pattern,
   SolutionImplementation,
-  PatternSolutionMapping
+  PatternSolutionMapping,
+  ListData
 } from "../types/DiscussionData";
+import { BaseDiscussion } from "../types/GitHub";
+import { data } from "react-router-dom";
+
+// Define the type for the callback function used in fetchDiscussionList
+type FetchListCallback = ({ }: ListData) => void;
 
 // Define the shape of the context
 type DiscussionDataContextType = {
   discussionData: DiscussionData;
-  fetchDiscussionList: (categoryId: string, cursor: string | null) => Promise<void>;
+  fetchDiscussionList: (categoryId: string, cursor: string | null, onDataFetched: FetchListCallback) => Promise<void>;
   fetchDiscussionDetailsByNumber: (categoryId: string, discussionNumber: number) => Promise<Pattern | SolutionImplementation | undefined>;
   fetchMappingDiscussionByNumber: (discussionNumber: number) => Promise<PatternSolutionMapping | undefined>;
   addNewPatternData?: (newPattern: Pattern) => void;
@@ -91,22 +97,15 @@ export const DiscussionDataProvider: React.FC<{
 
   // Dynamic fetching of discussions (overview) with pagination
   // The `cursor` parameter is now a string or null.
-  const fetchDiscussionList = useCallback(async (categoryId: string, cursor: string | null) => {
+  const fetchDiscussionList = useCallback(async (categoryId: string, cursor: string | null, onDataFetched: FetchListCallback) => {
     const type = categoryId === ids?.patternCategoryId ? 'patterns' : 'solutionImplementations';
 
     // Check if the request has already been made using the cursor as the key
     if (discussionData?.[type].listData[cursor || 'null']) {
       console.log(`Data for ${type} with cursor ${cursor} already loaded.`);
-      // Update the currentPageCursor to the requested cursor
-      setDiscussionData(prevData => {
-        return {
-          ...prevData,
-          [type]: {
-            ...prevData[type],
-            currentPageCursor: cursor,
-          },
-        };
-      });
+      const cachedData = discussionData?.[type].listData[cursor || 'null'];
+      // 💡 Daten über den Callback zurückgeben
+      onDataFetched(cachedData);
       return;
     }
 
@@ -115,12 +114,15 @@ export const DiscussionDataProvider: React.FC<{
     setError(null); // Clear any previous errors
 
     try {
+      console.log(`Fetch data for ${type} with cursor ${cursor} from GitHub API`)
       const response = await getDiscussionsListData(categoryId, cursor, PAGE_SIZE);
 
       setDiscussionData(prevData => {
-        // Use a temporary key for the first page to store it in the object
-        // for consistency, since null cannot be a key in a JS object.
         const key = cursor || 'null';
+        const dataToCache = {
+          discussions: response.nodes,
+          pageInfo: response.pageInfo,
+        };
 
         return {
           ...prevData,
@@ -128,15 +130,19 @@ export const DiscussionDataProvider: React.FC<{
             ...prevData[type],
             listData: {
               ...prevData[type].listData,
-              [key]: {
-                discussions: response.nodes,
-                pageInfo: response.pageInfo,
-              },
+              [key]: dataToCache,
             },
             currentPageCursor: cursor,
           },
         };
       });
+
+      // 💡 Daten über den Callback zurückgeben, nachdem der State aktualisiert wurde
+      onDataFetched({
+        discussions: response.nodes,
+        pageInfo: response.pageInfo,
+      });
+
     } catch (err: any) {
       setError(err.message || "Data could not be loaded.");
       console.error(`Error loading ${type}:`, err);

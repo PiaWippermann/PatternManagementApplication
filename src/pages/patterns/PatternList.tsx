@@ -1,54 +1,49 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useDiscussionData } from '../../context/DiscussionDataContext';
 import Pagination from '../../components/Pagination';
+import { SimpleDiscussion } from '../../types/GitHub';
+import { ListData, PageInfo } from '../../types/DiscussionData';
 import '../../styles/pages/ListPage.scss';
 
 function PatternList() {
-  const { loading, error, ids, discussionData, fetchDiscussionList } = useDiscussionData();
+  const { loading, error, ids, fetchDiscussionList } = useDiscussionData();
   const navigate = useNavigate();
 
-  // State for page navigation
+  const [patterns, setPatterns] = useState<SimpleDiscussion[]>([]);
+  const [pageInfo, setPageInfo] = useState<PageInfo | null>(null);
+
   const [pageHistory, setPageHistory] = useState<Array<string | null>>([null]);
   const [currentPageIndex, setCurrentPageIndex] = useState<number>(0);
 
-  // Get the current patterns data from the discussionData object
-  const currentCursor = pageHistory[currentPageIndex];
-  const currentPatternsPage = discussionData?.patterns.listData[currentCursor || 'null'];
-  const patterns = currentPatternsPage?.discussions || [];
-  const pageInfo = currentPatternsPage?.pageInfo;
+  const handleListDataFetched = useCallback((data: ListData) => {
+    setPatterns(data.discussions);
+    setPageInfo(data.pageInfo);
+  }, []);
 
-  // Fetch the initial page of patterns when the component first mounts
+  // Use Effect reacts to changing the page index
   useEffect(() => {
-    if (ids.patternCategoryId && !discussionData.patterns.listData['null']) {
-      fetchDiscussionList(ids.patternCategoryId, null);
-    }
-  }, [fetchDiscussionList, ids, discussionData]);
+    if (!ids.patternCategoryId) return;
+    const cursor = pageHistory[currentPageIndex];
+
+    // List data are fetched, inside this method it is checked if data can be used from cache
+    fetchDiscussionList(ids.patternCategoryId, cursor, handleListDataFetched);
+  }, [currentPageIndex, pageHistory, fetchDiscussionList, ids, handleListDataFetched]);
 
   // Handle pagination for loading the next/previous page of patterns
-  const handlePageChange = (cursor: string | null) => {
-    const isBackNavigation = currentPageIndex > 0 && cursor === pageHistory[currentPageIndex - 1];
-
-    if (isBackNavigation) {
-      setCurrentPageIndex(prevIndex => prevIndex - 1);
-    } else {
-      // check if we already have the data for the requested cursor
-      if (discussionData?.patterns.listData[cursor || 'null']) {
-        setPageHistory(prevHistory => [...prevHistory, cursor]);
-        setCurrentPageIndex(prevIndex => prevIndex + 1);
-        return;
-      }
-
-      // If not, fetch the data
-      fetchDiscussionList(ids.patternCategoryId, cursor);
-      setPageHistory(prevHistory => [...prevHistory, cursor]);
+  const handleNextPage = () => {
+    const nextCursor = pageInfo?.endCursor || null;
+    if (nextCursor) {
+      setPageHistory(prevHistory => [...prevHistory, nextCursor]);
       setCurrentPageIndex(prevIndex => prevIndex + 1);
     }
   };
 
-  // Lade-, Fehler- und leere Zustände in einer separaten Variable speichern
-  let content;
+  const handlePrevPage = () => {
+    setCurrentPageIndex(prevIndex => prevIndex - 1);
+  };
 
+  let content;
   if (loading && patterns.length === 0) {
     content = <p>Lade Patterns...</p>;
   } else if (error) {
@@ -80,10 +75,10 @@ function PatternList() {
       {content}
       <Outlet />
       <Pagination
-        onPageChange={handlePageChange}
-        prevCursor={pageHistory[currentPageIndex - 1]}
-        nextCursor={pageInfo?.endCursor || null}
+        onPrevPage={handlePrevPage}
+        onNextPage={handleNextPage}
         hasNextPage={pageInfo?.hasNextPage || false}
+        isBackDisabled={currentPageIndex === 0}
         loading={loading}
       />
     </div>

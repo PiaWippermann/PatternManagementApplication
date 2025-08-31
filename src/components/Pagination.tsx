@@ -2,35 +2,33 @@ import React from 'react';
 import './Pagination.module.scss';
 
 type PaginationProps = {
-    onPageChange: (cursor: string | null) => void;
-    prevCursor: string | null;
-    nextCursor: string | null;
+    onPrevPage: () => void;
+    onNextPage: () => void;
     hasNextPage: boolean;
+    isBackDisabled: boolean;
     loading: boolean;
 };
 
 const Pagination: React.FC<PaginationProps> = ({
-    onPageChange,
-    prevCursor,
-    nextCursor,
+    onPrevPage,
+    onNextPage,
     hasNextPage,
+    isBackDisabled,
     loading
 }) => {
-    const isBackDisabled = prevCursor === undefined || loading;
-
     return (
         <div className="pagination-container">
             <button
                 className="pagination-button"
-                onClick={() => onPageChange(prevCursor)}
-                disabled={isBackDisabled}
+                onClick={onPrevPage}
+                disabled={isBackDisabled || loading}
             >
                 Back
             </button>
 
             <button
                 className="pagination-button"
-                onClick={() => onPageChange(nextCursor)}
+                onClick={onNextPage}
                 disabled={!hasNextPage || loading}
             >
                 Next

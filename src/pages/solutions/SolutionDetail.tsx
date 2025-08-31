@@ -11,7 +11,7 @@ const SolutionDetail = () => {
   // use params to get the pattern number from the URL 
   const { solutionImplementationNumber } = useParams();
   console.log("solutionImplementationNumber", solutionImplementationNumber);
-  const { discussionData, loading, error, fetchDiscussionDetailsByNumber, ids } = useDiscussionData();
+  const { loading, error, fetchDiscussionDetailsByNumber, ids } = useDiscussionData();
   const navigate = useNavigate();
 
   // State for loaded details
@@ -70,6 +70,7 @@ const SolutionDetail = () => {
           <MappingList
             sourceNumber={solutionImplementationDetails.number}
             linkedNumbers={solutionImplementationDetails.mappings}
+            sourceCategory="solutionImplementations"
           />
         </div>
 
