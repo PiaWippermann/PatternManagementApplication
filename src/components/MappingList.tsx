@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useDiscussionData } from '../context/DiscussionDataContext';
-import Comment from './Comment';
+import CommentComponent from './Comment';
 import { PatternSolutionMapping, SolutionImplementation, Pattern, PageInfo, ListData } from '../types/DiscussionData';
 import { SimpleDiscussion } from '../types/GitHub';
 import CommentCreator from './CommentCreator';
+import { Comment } from '../types/GitHub';
 
 type MappingListProps = {
     linkedNumbers: number[];
@@ -12,7 +13,7 @@ type MappingListProps = {
 };
 
 const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, sourceCategory }) => {
-    const { loading, error, ids, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, fetchDiscussionList } = useDiscussionData();
+    const { loading, error, ids, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, fetchDiscussionList, addOrUpdateMappingData } = useDiscussionData();
 
     // State data for mapping discussions
     const [mappingDiscussions, setMappingDiscussions] = useState<(PatternSolutionMapping | undefined)[]>([]);
@@ -94,10 +95,39 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, 
         setSelectedItem(discussionDetails);
     };
 
-    const onAddedComment = async (comment: Comment) => {
-        // Add the comment to the mapping discussion and update it to the state
+    // MappingList.tsx
 
-    }
+    const onAddedComment = (discussionId: string, comment: Comment) => {
+        console.log("New comment added to discussion ID:", discussionId, comment);
+        // Create a new array with the updated mapping
+        const updatedDiscussions = mappingDiscussions.map(discussion => {
+            // Find the correct discussion by ID
+            if (discussion && discussion.id === discussionId) {
+                // Create a new, immutable copy of the mapping object with the new comment
+                return {
+                    ...discussion,
+                    comments: {
+                        ...discussion.comments,
+                        // Add the new comment to a new array
+                        nodes: [...(discussion.comments?.nodes || []), comment]
+                    }
+                };
+            }
+
+            // Return unchanged discussions
+            return discussion;
+        });
+
+        // Update the local state in the component
+        setMappingDiscussions(updatedDiscussions);
+
+        // Find the updated object in the new array and pass it to the context
+        const updatedMappingData = updatedDiscussions.find(d => d?.id === discussionId);
+
+        if (updatedMappingData) {
+            addOrUpdateMappingData(updatedMappingData);
+        }
+    };
 
     if (loading && mappingDiscussions.length === 0) {
         return <p>Loading mappings content...</p>;
@@ -185,11 +215,18 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, 
                                 <ul>
                                     {discussion?.comments.nodes.map((comment) => (
                                         <li key={comment.id} className="comment-item">
-                                            <Comment commentData={comment} />
+                                            <CommentComponent commentData={comment} />
                                         </li>
                                     ))}
                                     <li className="comment-item">
-                                        <CommentCreator discussionId={discussion?.id} />
+                                        <CommentCreator
+                                            discussionId={discussion?.id}
+                                            onCommentSubmit={(comment) => {
+                                                if (discussion?.id) {
+                                                    onAddedComment(discussion.id, comment);
+                                                }
+                                            }}
+                                        />
                                     </li>
                                 </ul>
                             </li>

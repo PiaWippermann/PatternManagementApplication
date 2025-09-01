@@ -28,7 +28,7 @@ type DiscussionDataContextType = {
   fetchMappingDiscussionByNumber: (discussionNumber: number) => Promise<PatternSolutionMapping | undefined>;
   addNewPatternData?: (newPattern: Pattern) => void;
   addNewSolutionImplementationData?: (newSolutionImplementation: SolutionImplementation) => void;
-  addNewMappingData?: (newMapping: PatternSolutionMapping) => void;
+  addOrUpdateMappingData: (newMapping: PatternSolutionMapping) => void;
   ids: RepositoryIds;
   loading: boolean;
   error: string | null;
@@ -54,7 +54,7 @@ const DiscussionDataContext = createContext<DiscussionDataContextType>({
   fetchMappingDiscussionByNumber: async () => { return undefined },
   addNewPatternData: () => { },
   addNewSolutionImplementationData: () => { },
-  addNewMappingData: () => { },
+  addOrUpdateMappingData: () => { },
   ids: {
     repositoryId: "",
     solutionImplementationCategoryId: "",
@@ -414,11 +414,26 @@ export const DiscussionDataProvider: React.FC<{
   };
 
   // Add a new mapping to the context state
-  const addNewMappingData = (newMapping: PatternSolutionMapping) => {
-    setDiscussionData(prevData => ({
-      ...prevData,
-      patternSolutionMappings: [newMapping, ...prevData.patternSolutionMappings],
-    }));
+  const addOrUpdateMappingData = (newMapping: PatternSolutionMapping) => {
+    // Check if there is an existing mapping with the same id and update if existing 
+    let existingMapping = discussionData.patternSolutionMappings.find(x => x.id == newMapping.id);
+
+    if (existingMapping) {
+      // Update the discussionData existing mapping entry
+      setDiscussionData(prevData => ({
+        ...prevData,
+        patternSolutionMappings: [
+          newMapping,
+          ...prevData.patternSolutionMappings.filter(x => x.id !== newMapping.id),
+        ],
+      }));
+    } else {
+      // Add the new mapping to the discussionData
+      setDiscussionData(prevData => ({
+        ...prevData,
+        patternSolutionMappings: [newMapping, ...prevData.patternSolutionMappings],
+      }));
+    }
   };
 
   // fetch repo ids on mount
@@ -429,7 +444,7 @@ export const DiscussionDataProvider: React.FC<{
   return (
     <DiscussionDataContext.Provider
       value={{
-        ids, loading, error, discussionData, fetchDiscussionList, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, addNewPatternData, addNewSolutionImplementationData, addNewMappingData
+        ids, loading, error, discussionData, fetchDiscussionList, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, addNewPatternData, addNewSolutionImplementationData, addOrUpdateMappingData
       }}
     >
       {children}

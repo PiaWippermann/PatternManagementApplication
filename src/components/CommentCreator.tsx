@@ -5,8 +5,10 @@ import { Comment } from '../types/GitHub';
 
 export default function CommentCreator({
     discussionId,
+    onCommentSubmit
 }: {
     discussionId: string | undefined;
+    onCommentSubmit: (comment: Comment) => void;
 }) {
     const [commentText, setCommentText] = useState('');
 
@@ -14,9 +16,14 @@ export default function CommentCreator({
         e.preventDefault();
 
         if (discussionId && commentText.trim()) {
-            // post this comment for the given discussionId
+            // Call the API to create a comment
             const commentResponse = await createDiscussionComment(discussionId, commentText);
-            // onCommentSubmit(commentResponse);
+
+            console.log("Comment created:", commentResponse);
+
+            // Pass the created comment back to the parent component by calling the onCommentSubmit callback
+            onCommentSubmit(commentResponse);
+
             setCommentText('');
         }
     };

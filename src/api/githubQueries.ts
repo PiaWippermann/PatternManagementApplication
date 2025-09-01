@@ -1,5 +1,4 @@
 // in this file, we define the GraphQL queries and mutations for loading discussions and creating new discussions on GitHub.
-
 import { GraphQLClient, gql } from "graphql-request";
 import type {
   BaseDiscussion,
@@ -263,10 +262,20 @@ const ADD_DISCUSSION_COMMENT = gql`
           login
           avatarUrl
         }
+        reactions(first: 10) {
+          nodes {
+            content
+            user {
+              name
+              avatarUrl
+            }
+          }
+        }
       }
     }
   }
 `;
+
 /**
  * Gets a paginated list of discussions for a given category.
  * This category can be either referred to as "Patterns" or "Realizations".
@@ -433,8 +442,7 @@ export const createDiscussionComment = async (discussionId: string, body: string
     body
   };
 
-  const response = await client.request<{ comment: Comment }>(mutation, variables);
-  console.log("Comment created", response);
+  const response = await client.request<{ addDiscussionComment: { comment: Comment } }>(mutation, variables);
 
-  return response.comment;
+  return response.addDiscussionComment.comment;
 }
