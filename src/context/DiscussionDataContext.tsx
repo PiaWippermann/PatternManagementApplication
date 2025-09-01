@@ -177,8 +177,6 @@ export const DiscussionDataProvider: React.FC<{
     try {
       const response = await getDiscussionDetails(discussionNumber);
 
-      console.log("response for discussion details", response);
-
       if (!response) {
         setError("Discussion not found.");
         return;
@@ -204,8 +202,6 @@ export const DiscussionDataProvider: React.FC<{
 
         return fullPatternData;
       } else if (type === "solutionImplementations") {
-        console.log("Parsing solution body for discussion number", discussionNumber);
-        console.log(response.body);
         const solutionData = parseSolutionBody(response.body);
         const fullSolutionData: SolutionImplementation = {
           ...response,
@@ -246,7 +242,6 @@ export const DiscussionDataProvider: React.FC<{
 
     try {
       const response = await getDiscussionDetails(discussionNumber, true);
-      console.log("response for mapping discussion", response);
 
       if (!response) {
         setError("Discussion not found.");
@@ -259,8 +254,6 @@ export const DiscussionDataProvider: React.FC<{
         // Mapping discussion body is not in the right format, ignore this discussion
         return;
       }
-
-      console.log("parsed mapping body", mappingData);
 
       const fullMappingData: PatternSolutionMapping = {
         ...response,

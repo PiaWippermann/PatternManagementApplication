@@ -5,6 +5,8 @@ import Pagination from '../../components/Pagination';
 import { SimpleDiscussion } from '../../types/GitHub';
 import { ListData, PageInfo } from '../../types/DiscussionData';
 import '../../styles/pages/ListPage.scss';
+import patternIconUrl from '../../assets/patterns.svg';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 function PatternList() {
   const { loading, error, ids, fetchDiscussionList } = useDiscussionData();
@@ -45,18 +47,18 @@ function PatternList() {
 
   let content;
   if (loading && patterns.length === 0) {
-    content = <p>Lade Patterns...</p>;
+    content = <LoadingSpinner />;
   } else if (error) {
     content = <p>Fehler beim Laden: {error}</p>;
   } else if (patterns.length === 0) {
     content = <p>Keine Patterns gefunden.</p>;
   } else {
     content = (
-      <ul className="item-list">
+      <ul className="list-content">
         {patterns.map((pattern) => (
           <li
             key={pattern.number}
-            className="item-card"
+            className="list-item"
             onClick={() => navigate(`/patterns/${pattern.number}`)}
           >
             <div className="item-title">
@@ -69,9 +71,15 @@ function PatternList() {
   }
 
   return (
-    <div className="list-page">
-      <h1>Patterns</h1>
-      <button onClick={() => navigate('/patterns/create')} className="create-button">Create New Pattern</button>
+    <div className="list-container">
+      <div className="header-section">
+        <h1 className="page-title">
+          <img src={patternIconUrl} className="title-icon" alt="Patterns Icon" />
+          Patterns
+        </h1>
+        <button onClick={() => navigate('/patterns/create')} className="create-button">Create New Pattern</button>
+      </div>
+
       {content}
       <Outlet />
       <Pagination

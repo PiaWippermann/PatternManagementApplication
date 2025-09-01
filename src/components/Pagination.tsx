@@ -1,5 +1,5 @@
 import React from 'react';
-import './Pagination.module.scss';
+import styles from './Pagination.module.scss';
 
 type PaginationProps = {
     onPrevPage: () => void;
@@ -17,9 +17,9 @@ const Pagination: React.FC<PaginationProps> = ({
     loading
 }) => {
     return (
-        <div className="pagination-container">
+        <div className={styles.paginationContainer}>
             <button
-                className="pagination-button"
+                className={styles.paginationButton}
                 onClick={onPrevPage}
                 disabled={isBackDisabled || loading}
             >
@@ -27,7 +27,7 @@ const Pagination: React.FC<PaginationProps> = ({
             </button>
 
             <button
-                className="pagination-button"
+                className={styles.paginationButton}
                 onClick={onNextPage}
                 disabled={!hasNextPage || loading}
             >

@@ -15,22 +15,13 @@ type MappingListProps = {
 const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, sourceCategory }) => {
     const { loading, error, ids, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, fetchDiscussionList, addOrUpdateMappingData } = useDiscussionData();
 
-    // State data for mapping discussions
     const [mappingDiscussions, setMappingDiscussions] = useState<(PatternSolutionMapping | undefined)[]>([]);
-
-    // Details for a target discussion indicated for a given mapping disussion number
     const [mappingTargetDetails, setMappingTargetDetails] = useState<{ [key: number]: { details: SolutionImplementation | Pattern | undefined, isVisible: boolean } }>({});
-
-    // Loading state
     const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
-
-    // 💡 State variables for creation view
     const [isCreating, setIsCreating] = useState<boolean>(false);
     const [selectedItem, setSelectedItem] = useState<Pattern | SolutionImplementation | undefined>(undefined);
     const [creationList, setCreationList] = useState<SimpleDiscussion[]>([]);
     const [creationPageInfo, setCreationPageInfo] = useState<PageInfo | null>(null);
-
-    // 💡 Pagination for creation view
     const [creationPageHistory, setCreationPageHistory] = useState<Array<string | null>>([null]);
     const [currentCreationPageIndex, setCurrentCreationPageIndex] = useState<number>(0);
 
@@ -53,30 +44,59 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, 
         loadMappedDiscussions();
     }, [linkedNumbers, fetchMappingDiscussionByNumber]);
 
-    // 💡 Callback for loading the creation list
     const handleCreationListFetched = useCallback((data: ListData) => {
         setCreationList(data.discussions);
         setCreationPageInfo(data.pageInfo);
     }, []);
 
-    // 💡 useEffect that loads the list for creation
+    // This useEffect will run when `isCreating` or the pagination state changes
     useEffect(() => {
-        if (!isCreating || !ids.patternCategoryId || !ids.solutionImplementationCategoryId) return;
+        // Only run this effect when the "Create new mapping" view is active
+        if (isCreating && ids.patternCategoryId && ids.solutionImplementationCategoryId) {
+            const targetType = sourceCategory === 'patterns' ? 'solutionImplementations' : 'patterns';
+            const targetCategoryId = targetType === 'patterns' ? ids.patternCategoryId : ids.solutionImplementationCategoryId;
+            const currentCursor = creationPageHistory[currentCreationPageIndex];
+            fetchDiscussionList(targetCategoryId, currentCursor, handleCreationListFetched);
+        }
+    }, [isCreating, ids, currentCreationPageIndex, creationPageHistory, fetchDiscussionList, handleCreationListFetched, sourceCategory]);
 
-        const targetType = sourceCategory === 'patterns' ? 'solutionImplementations' : 'patterns';
-        const targetCategoryId = targetType === 'patterns' ? ids.patternCategoryId : ids.solutionImplementationCategoryId;
-        const currentCursor = creationPageHistory[currentCreationPageIndex];
 
-        fetchDiscussionList(targetCategoryId, currentCursor, handleCreationListFetched);
-    }, [isCreating, currentCreationPageIndex, creationPageHistory, ids, fetchDiscussionList, handleCreationListFetched, sourceCategory]);
-
-
-    // handleMappingClick and other logic...
     const handleMappingClick = async (discussion: PatternSolutionMapping | undefined) => {
-        // ...existing code...
+        if (!discussion) return;
+
+        // Get a reference to the existing details for this discussion number
+        const existingDetails = mappingTargetDetails[discussion.number];
+
+        if (existingDetails) {
+            // Create a new object for the updated details, change only visibility
+            const updatedDetails = {
+                ...existingDetails,
+                isVisible: !existingDetails.isVisible,
+            };
+
+            // Create a new object for the entire mappingTargetDetails state
+            setMappingTargetDetails(prevDetails => ({
+                ...prevDetails,
+                [discussion.number]: updatedDetails, // Update discussion details
+            }));
+
+        } else {
+            // No existing details, fetch them
+            setIsLoadingDetails(true);
+            const details = await fetchDiscussionDetailsByNumber(ids.solutionImplementationCategoryId, discussion.number);
+            setIsLoadingDetails(false);
+
+            // Create a new object to represent the state update
+            setMappingTargetDetails(prevDetails => ({
+                ...prevDetails,
+                [discussion.number]: {
+                    isVisible: true,
+                    details
+                },
+            }));
+        }
     };
 
-    // 💡 Pagination handler for creation view
     const handleCreationNextPage = () => {
         const nextCursor = creationPageInfo?.endCursor || null;
         if (nextCursor) {
@@ -90,61 +110,34 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, 
     };
 
     const showDiscussionDetails = async (discussionNumber: number) => {
-        // Fetch the discussion details and store the result in the selectedItem
         const discussionDetails = await fetchDiscussionDetailsByNumber(ids.solutionImplementationCategoryId, discussionNumber);
         setSelectedItem(discussionDetails);
     };
 
-    // MappingList.tsx
-
     const onAddedComment = (discussionId: string, comment: Comment) => {
-        console.log("New comment added to discussion ID:", discussionId, comment);
-        // Create a new array with the updated mapping
         const updatedDiscussions = mappingDiscussions.map(discussion => {
-            // Find the correct discussion by ID
             if (discussion && discussion.id === discussionId) {
-                // Create a new, immutable copy of the mapping object with the new comment
                 return {
                     ...discussion,
                     comments: {
                         ...discussion.comments,
-                        // Add the new comment to a new array
                         nodes: [...(discussion.comments?.nodes || []), comment]
                     }
                 };
             }
-
-            // Return unchanged discussions
             return discussion;
         });
 
-        // Update the local state in the component
         setMappingDiscussions(updatedDiscussions);
 
-        // Find the updated object in the new array and pass it to the context
         const updatedMappingData = updatedDiscussions.find(d => d?.id === discussionId);
-
         if (updatedMappingData) {
             addOrUpdateMappingData(updatedMappingData);
         }
     };
 
-    if (loading && mappingDiscussions.length === 0) {
-        return <p>Loading mappings content...</p>;
-    }
-    if (error) {
-        return <p>Error loading mappings: {error}</p>;
-    }
-    if (mappingDiscussions.length === 0) {
-        return (
-            <div>
-                <p>No mappings found.</p>
-                <button onClick={() => setIsCreating(true)}>Create new mapping</button>
-            </div>
-        );
-    }
-
-    // Conditional rendering for creation view
+    // Check if the current state is "creating"
+    // Then show the creation UI with a list of discussions and the option to show details
     if (isCreating) {
         if (selectedItem) {
             return (
@@ -184,56 +177,68 @@ const MappingList: React.FC<MappingListProps> = ({ linkedNumbers, sourceNumber, 
         );
     }
 
+    // Check if the current state is "loading"
+    if (loading && mappingDiscussions.length === 0) {
+        return <p>Loading mappings content...</p>;
+    }
+
+    // Check if the current state is "error"
+    if (error) {
+        return <p>Error loading mappings: {error}</p>;
+    }
+
+    // Check if there are no mapping discussions
+    if (mappingDiscussions.length === 0) {
+        return (
+            <div>
+                <p>No mappings found.</p>
+                <button onClick={() => setIsCreating(true)}>Create new mapping</button>
+            </div>
+        );
+    }
+
+    // In this case mappingDiscussions is not empty and we show the list
+    // Option to get details for each mapping including comments
     return (
         <div className="mapping-list-container">
-            {mappingDiscussions.length === 0 ? (
-                <div>
-                    <p>No mappings found.</p>
-                    <button onClick={() => setIsCreating(true)}>Create new mapping</button>
-                </div>
-            ) : (
-                <>
-                    <button onClick={() => setIsCreating(true)}>+ Create new mapping</button>
-                    <ul>
-                        {mappingDiscussions.map((discussion) => (
+            <button onClick={() => setIsCreating(true)}>+ Create new mapping</button>
+            <ul>
+                {mappingDiscussions.map((discussion) => (
+                    <li key={discussion?.id} className="mapping-item" onClick={() => handleMappingClick(discussion)}>
+                        <span className="mapping-title">{discussion?.title}</span>
+                        {discussion && mappingTargetDetails[discussion?.number] && mappingTargetDetails[discussion?.number].isVisible && (
+                            <div className="linked-details-container">
+                                {isLoadingDetails ? (
+                                    <p>Lade Details...</p>
+                                ) : (
+                                    <>
+                                        <h3>{mappingTargetDetails[discussion?.number].details?.title}</h3>
+                                        <p>{mappingTargetDetails[discussion?.number].details?.description}</p>
 
-                            // ... Ihre Rendering-Logik für die bestehenden Mappings
-                            <li key={discussion?.id} className="mapping-item" onClick={() => handleMappingClick(discussion)}>
-                                <span className="mapping-title">{discussion?.title}</span>
-                                {discussion && mappingTargetDetails[discussion?.number] && mappingTargetDetails[discussion?.number].isVisible && (
-                                    <div className="linked-details-container">
-                                        {isLoadingDetails ? (
-                                            <p>Lade Details...</p>
-                                        ) : (
-                                            <>
-                                                <h3>{mappingTargetDetails[discussion?.number].details?.title}</h3>
-                                                <p>{mappingTargetDetails[discussion?.number].details?.description}</p>
-                                            </>
-                                        )}
-                                    </div>
+                                        <ul>
+                                            {discussion?.comments.nodes.map((comment) => (
+                                                <li key={comment.id} className="comment-item">
+                                                    <CommentComponent commentData={comment} />
+                                                </li>
+                                            ))}
+                                            <li className="comment-item">
+                                                <CommentCreator
+                                                    discussionId={discussion?.id}
+                                                    onCommentSubmit={(comment) => {
+                                                        if (discussion?.id) {
+                                                            onAddedComment(discussion.id, comment);
+                                                        }
+                                                    }}
+                                                />
+                                            </li>
+                                        </ul>
+                                    </>
                                 )}
-                                <ul>
-                                    {discussion?.comments.nodes.map((comment) => (
-                                        <li key={comment.id} className="comment-item">
-                                            <CommentComponent commentData={comment} />
-                                        </li>
-                                    ))}
-                                    <li className="comment-item">
-                                        <CommentCreator
-                                            discussionId={discussion?.id}
-                                            onCommentSubmit={(comment) => {
-                                                if (discussion?.id) {
-                                                    onAddedComment(discussion.id, comment);
-                                                }
-                                            }}
-                                        />
-                                    </li>
-                                </ul>
-                            </li>
-                        ))}
-                    </ul>
-                </>
-            )}
+                            </div>
+                        )}
+                    </li>
+                ))}
+            </ul>
         </div>
     );
 };
