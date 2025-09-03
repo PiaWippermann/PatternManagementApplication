@@ -2,9 +2,8 @@
 import { GraphQLClient, gql } from "graphql-request";
 import type {
   BaseDiscussion,
-  DiscussionCreationResponse,
-  DiscussionUpdateResponse,
-  Comment
+  Comment,
+  PageInfo
 } from "../types/GitHub";
 import type { RepositoryIds } from "../types/DiscussionData";
 
@@ -64,63 +63,6 @@ const GET_SIMPLE_DISCUSSION_BY_NUMBER_QUERY = gql`
       url
       viewerCanDelete
       viewerCanUpdate
-    }
-  }
-}
-`;
-
-// Includes comments and reactions in the query
-const GET_MAPPING_DISCUSSION_BY_NUMBER_QUERY = gql`
-  query GetDiscussionByNumber($repoOwner: String!, $repoName: String!, $discussionNumber: Int!) {
-  repository(owner: $repoOwner, name: $repoName) {
-    discussion(number: $discussionNumber) {
-      id
-      number
-      author {
-        avatarUrl
-        login
-      }
-      body
-      category {
-        id
-        name
-        description
-        emojiHTML
-      }
-      createdAt
-      title
-      url
-      viewerCanDelete
-      viewerCanUpdate
-      comments(first: 20) {
-        nodes {
-          id
-          body
-          publishedAt
-          author {
-            login
-            avatarUrl
-          }
-          reactions(first: 10) {
-            nodes {
-              content
-              user {
-                login
-                avatarUrl
-              }
-            }
-          }
-        }
-      }
-      reactions(first: 10) {
-        nodes {
-          content
-          user {
-            login
-            avatarUrl
-          }
-        }
-      }
     }
   }
 }
@@ -276,6 +218,38 @@ const ADD_DISCUSSION_COMMENT = gql`
   }
 `;
 
+const GET_DISCUSSION_COMMENTS_QUERY = gql`
+  query GetDiscussionComments($discussionId: ID!, $first: Int, $after: String) {
+  node(id: $discussionId) {
+    ... on Discussion {
+      comments(first: $first, after: $after) {
+        pageInfo {
+          endCursor
+          hasNextPage
+        }
+        nodes {
+          id
+          body
+          publishedAt
+          author {
+            login
+            avatarUrl
+          }
+          reactions(first: 10) {
+            nodes {
+              content
+              user {
+                login
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+`;
+
 /**
  * Gets a paginated list of discussions for a given category.
  * This category can be either referred to as "Patterns" or "Realizations".
@@ -324,12 +298,15 @@ export const getRepositoryIds = async (): Promise<RepositoryIds> => {
   const repositoryId = data.repository.id;
   let solutionImplementationCategoryId = "";
   let patternCategoryId = "";
+  let patternSolutionMappingCategoryId = "";
 
   for (const category of data.repository.discussionCategories.nodes) {
     if (category.name === "Solution Implementations") {
       solutionImplementationCategoryId = category.id;
     } else if (category.name === "Patterns") {
       patternCategoryId = category.id;
+    } else if (category.name == "Pattern - Solution Implementation Mapping") {
+      patternSolutionMappingCategoryId = category.id;
     }
   }
 
@@ -337,7 +314,7 @@ export const getRepositoryIds = async (): Promise<RepositoryIds> => {
     throw new Error("One or more discussion categories not found");
   }
 
-  return { repositoryId, patternCategoryId, solutionImplementationCategoryId };
+  return { repositoryId, patternCategoryId, solutionImplementationCategoryId, patternSolutionMappingCategoryId };
 };
 
 /**
@@ -366,7 +343,11 @@ export const createDiscussion = async (
     },
   };
 
-  const response = await client.request<DiscussionCreationResponse>(
+  const response = await client.request<{
+    createDiscussion: {
+      discussion: BaseDiscussion;
+    };
+  }>(
     mutation,
     variables
   );
@@ -394,27 +375,22 @@ export const updateDiscussionBody = async (
     },
   };
 
-  const response = await client.request<DiscussionUpdateResponse>(
+  const response = await client.request<{ updateDiscussion: { discussion: BaseDiscussion } }>(
     mutation,
     variables
   );
-  return response.updateDiscussion;
+  return response.updateDiscussion.discussion;
 };
 
 /**
  * Given a discussion ID, fetches the corresponding discussion details from GitHub.
  * This method is used when navigating to the detail view of a pattern or solution implementation.
- * For loading the pattern - solution implementation links a different method is used as additional comments are needed.
  * @param discussionId
  * @returns 
  */
-export const getDiscussionDetails = async (discussionNumber: number, isMappingDiscussion: boolean = false) => {
+export const getDiscussionDetails = async (discussionNumber: number) => {
   let query = "";
-  if (!isMappingDiscussion) {
-    query = GET_SIMPLE_DISCUSSION_BY_NUMBER_QUERY;
-  } else {
-    query = GET_MAPPING_DISCUSSION_BY_NUMBER_QUERY;
-  }
+  query = GET_SIMPLE_DISCUSSION_BY_NUMBER_QUERY;
 
   // 💡 Die Variablen müssen mit den Variablennamen im GraphQL-Query übereinstimmen
   const variables = {
@@ -445,4 +421,17 @@ export const createDiscussionComment = async (discussionId: string, body: string
   const response = await client.request<{ addDiscussionComment: { comment: Comment } }>(mutation, variables);
 
   return response.addDiscussionComment.comment;
+}
+
+export const fetchDiscussionComments = async (discussionId: string, first: number, after?: string) => {
+  const query = GET_DISCUSSION_COMMENTS_QUERY;
+
+  const variables = {
+    discussionId,
+    first,
+    after
+  };
+
+  const data = await client.request<{ node: { comments: { nodes: Comment[], pageInfo: PageInfo } } }>(query, variables);
+  return data.node.comments;
 }

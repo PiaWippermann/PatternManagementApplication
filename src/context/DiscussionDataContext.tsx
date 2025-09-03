@@ -14,8 +14,6 @@ import {
   PatternSolutionMapping,
   ListData
 } from "../types/DiscussionData";
-import { BaseDiscussion } from "../types/GitHub";
-import { data } from "react-router-dom";
 
 // Define the type for the callback function used in fetchDiscussionList
 type FetchListCallback = ({ }: ListData) => void;
@@ -26,8 +24,8 @@ type DiscussionDataContextType = {
   fetchDiscussionList: (categoryId: string, cursor: string | null, onDataFetched: FetchListCallback) => Promise<void>;
   fetchDiscussionDetailsByNumber: (categoryId: string, discussionNumber: number) => Promise<Pattern | SolutionImplementation | undefined>;
   fetchMappingDiscussionByNumber: (discussionNumber: number) => Promise<PatternSolutionMapping | undefined>;
-  addNewPatternData?: (newPattern: Pattern) => void;
-  addNewSolutionImplementationData?: (newSolutionImplementation: SolutionImplementation) => void;
+  addOrUpdatePatternData: (newPattern: Pattern) => void;
+  addOrUpdateSolutionImplementationData: (newSolutionImplementation: SolutionImplementation) => void;
   addOrUpdateMappingData: (newMapping: PatternSolutionMapping) => void;
   ids: RepositoryIds;
   loading: boolean;
@@ -52,13 +50,14 @@ const DiscussionDataContext = createContext<DiscussionDataContextType>({
   fetchDiscussionList: async () => { },
   fetchDiscussionDetailsByNumber: async () => { return undefined; },
   fetchMappingDiscussionByNumber: async () => { return undefined },
-  addNewPatternData: () => { },
-  addNewSolutionImplementationData: () => { },
+  addOrUpdatePatternData: () => { },
+  addOrUpdateSolutionImplementationData: () => { },
   addOrUpdateMappingData: () => { },
   ids: {
     repositoryId: "",
     solutionImplementationCategoryId: "",
     patternCategoryId: "",
+    patternSolutionMappingCategoryId: "",
   },
   loading: true,
   error: null,
@@ -93,6 +92,7 @@ export const DiscussionDataProvider: React.FC<{
     repositoryId: "",
     solutionImplementationCategoryId: "",
     patternCategoryId: "",
+    patternSolutionMappingCategoryId: "",
   });
 
   // Dynamic fetching of discussions (overview) with pagination
@@ -241,7 +241,7 @@ export const DiscussionDataProvider: React.FC<{
     setError(null);
 
     try {
-      const response = await getDiscussionDetails(discussionNumber, true);
+      const response = await getDiscussionDetails(discussionNumber);
 
       if (!response) {
         setError("Discussion not found.");
@@ -297,113 +297,170 @@ export const DiscussionDataProvider: React.FC<{
   }, []);
 
   // Add a new pattern to the context state
-  const addNewPatternData = (newPattern: Pattern) => {
-    setDiscussionData(prevData => {
-      // 1. Create a new patterns object with the new pattern added to details
-      const newPatterns = {
-        ...prevData.patterns,
-        details: [newPattern, ...prevData.patterns.details],
-        listData: { ...prevData.patterns.listData }
-      };
+  const addOrUpdatePatternData = (newPattern: Pattern) => {
+    console.log("Adding/updating pattern in context state:", newPattern);
+    // Check if there is an existing pattern with the same id
+    let existingPattern = discussionData.patterns.details.find(x => x.id == newPattern.id);
+    console.log("Existing pattern found in context state:", existingPattern);
 
-      // 2. Update the listData to include the new pattern in the first page if it exists
-      const firstPage = newPatterns.listData['null']
-        ? { ...newPatterns.listData['null'] }
-        : null;
+    if (existingPattern) {
+      // Update only the details entry of the discussion data patterns for the given existing pattern
+      setDiscussionData(prevData => ({
+        ...prevData,
+        patterns: {
+          ...prevData.patterns,
+          details: [
+            newPattern,
+            ...prevData.patterns.details.filter(x => x.id !== newPattern.id),
+          ],
+        },
+      }));
 
-      if (firstPage) {
-        // 3. Create a simplified object for the list
-        const simplifiedPattern = {
-          id: newPattern.id,
-          title: newPattern.title,
-          number: newPattern.number,
+      console.log("Pattern details updated in context state", discussionData.patterns.details);
+    } else {
+      // Completely add the new pattern data
+      setDiscussionData(prevData => {
+        // 1. Create a new patterns object with the new pattern added to details
+        const newPatterns = {
+          ...prevData.patterns,
+          details: [newPattern, ...prevData.patterns.details],
+          listData: { ...prevData.patterns.listData }
         };
 
-        firstPage.discussions = [simplifiedPattern, ...firstPage.discussions];
+        // First, check if any of the listData already include the new pattern
+        const existingPage = Object.values(newPatterns.listData).find(page =>
+          page.discussions.some(discussion => discussion.id === newPattern.id)
+        );
 
-        if (firstPage.discussions.length > PAGE_SIZE) {
-          firstPage.discussions.pop();
-          const keysToRemove = Object.keys(newPatterns.listData).filter(key => key !== 'null');
-          for (const key of keysToRemove) {
-            delete newPatterns.listData[key];
+        // Add the new pattern to the list data if it is not found in the list data
+        if (!existingPage) {
+          // 2. Update the listData to include the new pattern in the first page if it exists
+          const firstPage = newPatterns.listData['null']
+            ? { ...newPatterns.listData['null'] }
+            : null;
+
+          if (firstPage) {
+            // 3. Create a simplified object for the list
+            const simplifiedPattern = {
+              id: newPattern.id,
+              title: newPattern.title,
+              number: newPattern.number,
+            };
+
+            firstPage.discussions = [simplifiedPattern, ...firstPage.discussions];
+
+            if (firstPage.discussions.length > PAGE_SIZE) {
+              firstPage.discussions.pop();
+              const keysToRemove = Object.keys(newPatterns.listData).filter(key => key !== 'null');
+              for (const key of keysToRemove) {
+                delete newPatterns.listData[key];
+              }
+            }
+            // 4. Update the first page in listData
+            newPatterns.listData['null'] = firstPage;
+          } else {
+            newPatterns.listData['null'] = {
+              discussions: [{
+                id: newPattern.id,
+                title: newPattern.title,
+                number: newPattern.number,
+              }],
+              pageInfo: {
+                endCursor: null,
+                hasNextPage: false,
+              },
+            };
           }
         }
-        // 4. Update the first page in listData
-        newPatterns.listData['null'] = firstPage;
-      } else {
-        newPatterns.listData['null'] = {
-          discussions: [{
-            id: newPattern.id,
-            title: newPattern.title,
-            number: newPattern.number,
-          }],
-          pageInfo: {
-            endCursor: null,
-            hasNextPage: false,
-          },
-        };
-      }
 
-      return {
-        ...prevData,
-        patterns: newPatterns
-      };
-    });
+        return {
+          ...prevData,
+          patterns: newPatterns
+        };
+      });
+    }
   };
 
   // Add a new solution implementation to the context state
-  const addNewSolutionImplementationData = (newSolutionImplementation: SolutionImplementation) => {
-    setDiscussionData(prevData => {
-      // 1. Create a new solutionImplementations object with the new solution added to details
-      const newSolutions = {
-        ...prevData.solutionImplementations,
-        details: [newSolutionImplementation, ...prevData.solutionImplementations.details],
-        listData: { ...prevData.solutionImplementations.listData }
-      };
+  const addOrUpdateSolutionImplementationData = (newSolutionImplementation: SolutionImplementation) => {
+    // Check if there is an existing solution with the same id
+    let existingSolution = discussionData.solutionImplementations.details.find(x => x.id == newSolutionImplementation.id);
 
-      // 2. Update the listData to include the new solution in the first page if it exists
-      const firstPage = newSolutions.listData['null']
-        ? { ...newSolutions.listData['null'] }
-        : null; // 'null' key for the first page
-
-      if (firstPage) {
-        // 3. Create a simplified object for the list
-        const simplifiedSolution = {
-          id: newSolutionImplementation.id,
-          title: newSolutionImplementation.title,
-          number: newSolutionImplementation.number,
+    if (existingSolution) {
+      // Update only the details entry of the discussion data solutionImplementations for the given existing solution
+      setDiscussionData(prevData => ({
+        ...prevData,
+        solutionImplementations: {
+          ...prevData.solutionImplementations,
+          details: [
+            newSolutionImplementation,
+            ...prevData.solutionImplementations.details.filter(x => x.id !== newSolutionImplementation.id),
+          ],
+        },
+      }));
+    } else {
+      // Completely add the new solution implementation data
+      setDiscussionData(prevData => {
+        // 1. Create a new solutionImplementations object with the new solution added to details
+        const newSolutions = {
+          ...prevData.solutionImplementations,
+          details: [newSolutionImplementation, ...prevData.solutionImplementations.details],
+          listData: { ...prevData.solutionImplementations.listData }
         };
 
-        firstPage.discussions = [simplifiedSolution, ...firstPage.discussions];
-        if (firstPage.discussions.length > PAGE_SIZE) {
-          firstPage.discussions.pop();
-          const keysToRemove = Object.keys(newSolutions.listData).filter(key => key !== 'null');
-          for (const key of keysToRemove) {
-            delete newSolutions.listData[key];
+        // First, check if any of the listData already include the new solution
+        const existingPage = Object.values(newSolutions.listData).find(page =>
+          page.discussions.some(discussion => discussion.id === newSolutionImplementation.id)
+        );
+
+        // Add the new solution to the list data if it is not found in the list data
+        if (!existingPage) {
+
+          // 2. Update the listData to include the new solution in the first page if it exists
+          const firstPage = newSolutions.listData['null']
+            ? { ...newSolutions.listData['null'] }
+            : null; // 'null' key for the first page
+
+          if (firstPage) {
+            // 3. Create a simplified object for the list
+            const simplifiedSolution = {
+              id: newSolutionImplementation.id,
+              title: newSolutionImplementation.title,
+              number: newSolutionImplementation.number,
+            };
+
+            firstPage.discussions = [simplifiedSolution, ...firstPage.discussions];
+            if (firstPage.discussions.length > PAGE_SIZE) {
+              firstPage.discussions.pop();
+              const keysToRemove = Object.keys(newSolutions.listData).filter(key => key !== 'null');
+              for (const key of keysToRemove) {
+                delete newSolutions.listData[key];
+              }
+            }
+            // 4. Update the first page in listData
+            newSolutions.listData['null'] = firstPage;
+          }
+          else {
+            newSolutions.listData['null'] = {
+              discussions: [{
+                id: newSolutionImplementation.id,
+                title: newSolutionImplementation.title,
+                number: newSolutionImplementation.number,
+              }],
+              pageInfo: {
+                endCursor: null,
+                hasNextPage: false,
+              },
+            };
           }
         }
-        // 4. Update the first page in listData
-        newSolutions.listData['null'] = firstPage;
-      }
-      else {
-        newSolutions.listData['null'] = {
-          discussions: [{
-            id: newSolutionImplementation.id,
-            title: newSolutionImplementation.title,
-            number: newSolutionImplementation.number,
-          }],
-          pageInfo: {
-            endCursor: null,
-            hasNextPage: false,
-          },
-        };
-      }
 
-      return {
-        ...prevData,
-        solutionImplementations: newSolutions
-      };
-    });
+        return {
+          ...prevData,
+          solutionImplementations: newSolutions
+        };
+      });
+    }
   };
 
   // Add a new mapping to the context state
@@ -426,6 +483,8 @@ export const DiscussionDataProvider: React.FC<{
         ...prevData,
         patternSolutionMappings: [newMapping, ...prevData.patternSolutionMappings],
       }));
+
+      console.log("New mapping added to context state", discussionData.patternSolutionMappings);
     }
   };
 
@@ -437,7 +496,7 @@ export const DiscussionDataProvider: React.FC<{
   return (
     <DiscussionDataContext.Provider
       value={{
-        ids, loading, error, discussionData, fetchDiscussionList, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, addNewPatternData, addNewSolutionImplementationData, addOrUpdateMappingData
+        ids, loading, error, discussionData, fetchDiscussionList, fetchDiscussionDetailsByNumber, fetchMappingDiscussionByNumber, addOrUpdatePatternData, addOrUpdateSolutionImplementationData, addOrUpdateMappingData
       }}
     >
       {children}

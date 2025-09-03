@@ -1,25 +1,27 @@
 import { createDiscussion } from "./githubQueries";
-import { PatternSolutionMapping } from "../types/DiscussionData";
+import { PatternSolutionMapping, Pattern, SolutionImplementation } from "../types/DiscussionData";
+import { addPatternMapping } from "./githubSolutions";
+import { addSolutionImplementationMapping } from "./githubPatterns";
 
 export async function createMapping({
     repositoryId,
     categoryId,
     title,
-    patternNumber,
-    solutionImplementationNumber
+    patternDiscussion,
+    solutionImplementationDiscussion
 }: {
     repositoryId: string;
     categoryId: string;
     title: string;
-    patternNumber: number;
-    solutionImplementationNumber: number;
+    patternDiscussion: Pattern;
+    solutionImplementationDiscussion: SolutionImplementation;
 }) {
     const body = `
 # Pattern
-${patternNumber}
+#${patternDiscussion.number}
 
 # Solution Implementation
-${solutionImplementationNumber}
+#${solutionImplementationDiscussion.number}
   `.trim();
 
     const response = await createDiscussion(title, body, categoryId, repositoryId);
@@ -27,13 +29,21 @@ ${solutionImplementationNumber}
         throw new Error("Failed to create pattern discussion");
     }
 
-    // Create a Mapping object to return
+    // Create a Mapping object
     const mapping: PatternSolutionMapping = {
         ...response,
-        patternDiscussionNumber: patternNumber,
-        solutionImplementationDiscussionNumber: solutionImplementationNumber
+        patternDiscussionNumber: patternDiscussion.number,
+        solutionImplementationDiscussionNumber: solutionImplementationDiscussion.number
     };
 
-    return mapping;
+    const updatedPattern: Pattern = await addSolutionImplementationMapping({ patternDiscussion, mappingNumber: response.number });
+
+    const updatedSolutionImplementation: SolutionImplementation = await addPatternMapping({ solutionImplementationDiscussion, mappingNumber: response.number });
+
+    return {
+        mapping,
+        updatedPattern,
+        updatedSolutionImplementation
+    };
 }
 

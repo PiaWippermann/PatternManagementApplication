@@ -1,6 +1,6 @@
 // this file contains types related to discussions, patterns, and solution implementations and pattern-solution implementation links
 
-import { BaseDiscussion, SimpleDiscussion } from "./GitHub";
+import { BaseDiscussion, SimpleDiscussion, PageInfo } from "./GitHub";
 
 export interface Pattern extends BaseDiscussion {
   icon: string;
@@ -18,11 +18,6 @@ export interface SolutionImplementation extends BaseDiscussion {
 export interface PatternSolutionMapping extends BaseDiscussion {
   patternDiscussionNumber: number;
   solutionImplementationDiscussionNumber: number;
-};
-
-export interface PageInfo {
-  endCursor: string | null;
-  hasNextPage: boolean;
 };
 
 export type ListData = {
@@ -54,4 +49,5 @@ export type RepositoryIds = {
   repositoryId: string;
   solutionImplementationCategoryId: string;
   patternCategoryId: string;
+  patternSolutionMappingCategoryId: string;
 };

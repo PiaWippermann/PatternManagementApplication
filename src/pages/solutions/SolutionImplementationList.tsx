@@ -2,9 +2,11 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, Outlet } from 'react-router-dom';
 import { useDiscussionData } from '../../context/DiscussionDataContext';
 import Pagination from '../../components/Pagination';
-import { SimpleDiscussion } from '../../types/GitHub';
-import { ListData, PageInfo } from '../../types/DiscussionData';
+import { SimpleDiscussion, PageInfo } from '../../types/GitHub';
+import { ListData } from '../../types/DiscussionData';
 import '../../styles/pages/ListPage.scss';
+import solutionImplementationIconUrl from '../../assets/solutionImplementations.svg';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 function SolutionImplementationList() {
   const { loading, error, ids, fetchDiscussionList } = useDiscussionData();
@@ -45,18 +47,18 @@ function SolutionImplementationList() {
 
   let content;
   if (loading && solutionImplementations.length === 0) {
-    content = <p>Lade SolutionImplementations...</p>;
+    content = <LoadingSpinner />;
   } else if (error) {
     content = <p>Fehler beim Laden: {error}</p>;
   } else if (solutionImplementations.length === 0) {
-    content = <p>Keine SolutionImplementations gefunden.</p>;
+    content = <p>No SolutionImplementations found.</p>;
   } else {
     content = (
-      <ul className="item-list">
+      <ul className="list-content">
         {solutionImplementations.map((solutionImplementation) => (
           <li
             key={solutionImplementation.number}
-            className="item-card"
+            className="list-item"
             onClick={() => navigate(`/solutionImplementations/${solutionImplementation.number}`)}
           >
             <div className="item-title">
@@ -69,9 +71,15 @@ function SolutionImplementationList() {
   }
 
   return (
-    <div className="list-page">
-      <h1>SolutionImplementations</h1>
-      <button onClick={() => navigate('/solutionImplementations/create')} className="create-button">Create New SolutionImplementation</button>
+    <div className="list-container">
+      <div className="header-section">
+        <h1 className="page-title">
+          <img src={solutionImplementationIconUrl} className="title-icon" alt="SolutionImplementations Icon" />
+          Solution Implementations
+        </h1>
+        <button onClick={() => navigate('/solutionImplementations/create')} className="create-button">Create New SolutionImplementation</button>
+      </div>
+
       {content}
       <Outlet />
       <Pagination

@@ -5,7 +5,8 @@ import { useDiscussionData } from "../../context/DiscussionDataContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
 import MappingList from "../../components/MappingList";
-
+import LoadingSpinner from "../../components/LoadingSpinner";
+import { SolutionImplementation } from "../../types/DiscussionData";
 
 const SolutionDetail = () => {
   // use params to get the pattern number from the URL 
@@ -15,13 +16,13 @@ const SolutionDetail = () => {
   const navigate = useNavigate();
 
   // State for loaded details
-  const [solutionImplementationDetails, setSolutionImplementationDetails] = useState<any>(null);
+  const [solutionImplementationDetails, setSolutionImplementationDetails] = useState<SolutionImplementation | null>(null);
 
   useEffect(() => {
     const loadDetails = async () => {
       if (solutionImplementationNumber && ids?.solutionImplementationCategoryId) {
-        // Call the function and wait for the return value
-        const details = await fetchDiscussionDetailsByNumber(ids.solutionImplementationCategoryId, parseInt(solutionImplementationNumber));
+        const details = await fetchDiscussionDetailsByNumber(ids.solutionImplementationCategoryId, parseInt(solutionImplementationNumber)) as SolutionImplementation | null;
+
         if (details) {
           setSolutionImplementationDetails(details);
         }
@@ -32,64 +33,52 @@ const SolutionDetail = () => {
 
   const close = () => navigate("/solutionImplementations");
 
-  if (loading && !solutionImplementationDetails) return <div>Loading solution implementations...</div>;
+  if (loading && !solutionImplementationDetails) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
   if (!solutionImplementationDetails) return <p>Solution implementation not found.</p>;
 
 
   return (
-    <div className="pattern-detail-panel">
-      <button onClick={close} className="close-button">
-        <FontAwesomeIcon
-          icon={faAnglesLeft}
-          size="2xs"
-          style={{ color: "#49454f" }}
-        />{" "}
+    <div className="detail-panel">
+      <button onClick={close} className="back-button">
+        <FontAwesomeIcon icon={faAnglesLeft} />
+        <span className="back-button-text">Back</span>
       </button>
 
-      <div className="pattern-detail-content">
-        <div className="pattern-category">
-          {/* <span dangerouslySetInnerHTML={{ __html: solutionImplementationDetails.category.emojiHTML }} />
-          <span>{solutionImplementationDetails.category.name}</span> */}
+      <div className="content-wrapper">
+        <div className="content-header">
+          <div className="entity-category">
+            <span dangerouslySetInnerHTML={{ __html: solutionImplementationDetails.category.emojiHTML }} />
+            <span className="category-name">{solutionImplementationDetails.category.name}</span>
+          </div>
+          <div className="item-title">
+            <span className="title-text">{solutionImplementationDetails.title}</span>
+          </div>
         </div>
 
-        <div className="item-title">
-          <span>{solutionImplementationDetails.title}</span>
+        <div className="content-body">
+          <div className="separator"></div>
+
+          <div className="section">
+            <h2 className="section-title">Description</h2>
+            <div className="description-text" dangerouslySetInnerHTML={{ __html: solutionImplementationDetails.description || "No description available." }} />
+          </div>
+
+          <div className="separator"></div>
+
+          <div className="section">
+            <h2 className="section-title">Linked Solutions</h2>
+            <MappingList
+              sourceDiscussion={solutionImplementationDetails}
+            />
+          </div>
         </div>
 
-        <div className="separator"></div>
-
-        <div className="pattern-description">
-          <p dangerouslySetInnerHTML={{ __html: solutionImplementationDetails.description || "No description available." }} />
-        </div>
-
-        <div className="separator"></div>
-
-        <div className="pattern-linked-solutions">
-          <h3>Linked Patterns:</h3>
-          <MappingList
-            sourceNumber={solutionImplementationDetails.number}
-            linkedNumbers={solutionImplementationDetails.mappings}
-            sourceCategory="solutionImplementations"
-          />
-        </div>
-
-        <div className="separator"></div>
-
-        <div className="pattern-meta">
-          <p>
-            <span className="bold">Solution Implementation URL:</span> {solutionImplementationDetails.solutionRefUrl || "No URL available."}
-          </p>
-          <p>
-            <span className="bold">Created by: </span>
-            <img src={solutionImplementationDetails.author.avatarUrl} alt={`${solutionImplementationDetails.author.login} Icon`} />
-            {solutionImplementationDetails.author.login}
-          </p>
-          <p>
-            <span className="bold">Created on:</span>{" "}
-            {new Date(solutionImplementationDetails.createdAt).toLocaleDateString()}
-          </p>
-        </div>
+        <footer>
+          <p><span>Reference:</span> {solutionImplementationDetails.solutionRefUrl}</p>
+          <p><span>Created by: </span><img src={solutionImplementationDetails.author.avatarUrl} alt={`${solutionImplementationDetails.author.login} Icon`} className="author-avatar" />{solutionImplementationDetails.author.login}</p>
+          <p><span>Created on:</span> {new Date(solutionImplementationDetails.createdAt).toLocaleDateString()}</p>
+        </footer>
       </div>
     </div>
   );

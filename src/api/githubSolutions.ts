@@ -41,20 +41,21 @@ ${description}
   return solutionImplementation;
 }
 
-export async function updateLinkedPatterns({
-  solutionDiscussionId,
-  newPatternNumber,
-  solutionDiscussionBody,
+/**
+ * Adds a new mapping number to the mappings list of the given solution implementation discussion.
+ */
+export async function addPatternMapping({
+  solutionImplementationDiscussion,
+  mappingNumber
 }: {
-  solutionDiscussionId: string;
-  newPatternNumber: number;
-  solutionDiscussionBody: string;
+  solutionImplementationDiscussion: SolutionImplementation,
+  mappingNumber: number
 }) {
   const patternHeader = "# Patterns";
-  const newPatternEntry = `- #${newPatternNumber}`;
+  const newPatternEntry = `- #${mappingNumber}`;
 
   // find and update the "Patterns" section
-  const lines = solutionDiscussionBody.split("\n");
+  const lines = solutionImplementationDiscussion.body.split("\n");
   let updatedBodyLines: string[] = [];
   let patternsSectionFound = false;
   let newPatternAdded = false;
@@ -79,7 +80,7 @@ export async function updateLinkedPatterns({
       }
 
       // if the new pattern is not already in the list, add it
-      if (!existingPatternNumbers.has(newPatternNumber.toString())) {
+      if (!existingPatternNumbers.has(mappingNumber.toString())) {
         updatedBodyLines.push(newPatternEntry);
         newPatternAdded = true;
       }
@@ -107,15 +108,24 @@ export async function updateLinkedPatterns({
     // If patterns section was found but the new pattern wasn't added
     // it means it was already present, or there's a logic issue.
     console.log(
-      `Pattern #${newPatternNumber} already exists in discussion ${solutionDiscussionId}. No update needed.`
+      `Pattern #${mappingNumber} already exists in discussion ${solutionImplementationDiscussion.number}. No update needed.`
     );
-    return solutionDiscussionBody; // No actual change, return original
+    return solutionImplementationDiscussion; // No actual change, return original
   }
 
   const updatedBody = updatedBodyLines.join("\n");
 
   // call updateDiscussion to update the body
-  const result = await updateDiscussionBody(solutionDiscussionId, updatedBody);
+  const result = await updateDiscussionBody(solutionImplementationDiscussion.id, updatedBody);
 
-  return result;
+  const solutionImplementationResult: SolutionImplementation = {
+    ...result,
+    mappings: [
+      ...solutionImplementationDiscussion.mappings,
+      mappingNumber
+    ],
+    solutionRefUrl: solutionImplementationDiscussion.solutionRefUrl,
+    description: solutionImplementationDiscussion.description
+  };
+  return solutionImplementationResult;
 }

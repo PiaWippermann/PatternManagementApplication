@@ -23,6 +23,11 @@ export interface Comment {
   };
 }
 
+export interface PageInfo {
+  endCursor: string | null;
+  hasNextPage: boolean;
+};
+
 export interface DiscussionCategory {
   id: string;
   name: string;
@@ -49,26 +54,9 @@ export interface BaseDiscussion {
   author: Author;
   comments: {
     nodes: Comment[];
+    pageInfo: PageInfo;
   };
   reactions: {
     nodes: Reaction[];
   };
-}
-
-export interface DiscussionsResponse {
-  repository: {
-    discussions: {
-      nodes: BaseDiscussion[];
-    };
-  };
-}
-
-export interface DiscussionCreationResponse {
-  createDiscussion: {
-    discussion: BaseDiscussion;
-  };
-}
-
-export interface DiscussionUpdateResponse {
-  updateDiscussion: BaseDiscussion;
 }

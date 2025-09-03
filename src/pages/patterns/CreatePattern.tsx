@@ -5,6 +5,7 @@ import "../../styles/pages/CreatePattern.scss";
 import { useDiscussionData } from "../../context/DiscussionDataContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const CreatePattern = () => {
   const { loading, error, ids, addNewPatternData } = useDiscussionData();
@@ -15,7 +16,7 @@ const CreatePattern = () => {
 
   const close = () => navigate("/patterns");
 
-  if (loading) return <div>Loading patterns...</div>;
+  if (loading) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
 
   const [title, setTitle] = useState("");

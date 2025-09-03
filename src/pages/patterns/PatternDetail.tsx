@@ -1,26 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import "../../styles/pages/PatternDetailPanel.scss";
 import { useDiscussionData } from "../../context/DiscussionDataContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
 import MappingList from "../../components/MappingList";
+import "../../styles/pages/DetailPage.scss";
+import { Pattern } from "../../types/DiscussionData";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const PatternDetail = () => {
-  // use params to get the pattern number from the URL 
   const { patternNumber } = useParams();
-
   const { loading, error, fetchDiscussionDetailsByNumber, ids } = useDiscussionData();
   const navigate = useNavigate();
 
-  // State for loaded details
-  const [patternDetails, setPatternDetails] = useState<any>(null);
+  const [patternDetails, setPatternDetails] = useState<Pattern | null>(null);
 
   useEffect(() => {
     const loadDetails = async () => {
       if (patternNumber && ids?.patternCategoryId) {
-        // Call the function and wait for the return value
-        const details = await fetchDiscussionDetailsByNumber(ids.patternCategoryId, parseInt(patternNumber));
+        const details = await fetchDiscussionDetailsByNumber(ids.patternCategoryId, parseInt(patternNumber)) as Pattern | null;
+
         if (details) {
           setPatternDetails(details);
         }
@@ -31,65 +30,52 @@ const PatternDetail = () => {
 
   const close = () => navigate("/patterns");
 
-  if (loading && !patternDetails) return <div>Loading patterns...</div>;
+  if (loading && !patternDetails) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
-  if (!patternDetails) return <p>Pattern not found.</p>;
+  if (!patternDetails) return <p>Details not found.</p>;
 
   return (
-    <div className="pattern-detail-panel">
-      <button onClick={close} className="close-button">
-        <FontAwesomeIcon
-          icon={faAnglesLeft}
-          size="2xs"
-          style={{ color: "#49454f" }}
-        />{" "}
+    <div className="detail-panel">
+      <button onClick={close} className="back-button">
+        <FontAwesomeIcon icon={faAnglesLeft} />
+        <span className="back-button-text">Back</span>
       </button>
 
-      <div className="pattern-detail-content">
-        <div className="pattern-category">
-          <span dangerouslySetInnerHTML={{ __html: patternDetails.category.emojiHTML }} />
-          <span>{patternDetails.category.name}</span>
+      <div className="content-wrapper">
+        <div className="content-header">
+          <div className="entity-category">
+            <span dangerouslySetInnerHTML={{ __html: patternDetails.category.emojiHTML }} />
+            <span className="category-name">{patternDetails.category.name}</span>
+          </div>
+          <div className="item-title">
+            <img src={patternDetails.icon} alt={`${patternDetails.title} Icon`} className="item-icon" />
+            <span className="title-text">{patternDetails.title}</span>
+          </div>
         </div>
 
-        <div className="item-title">
-          {/* Assumption: Icon is included in the details */}
-          <img src={patternDetails.icon} alt={`${patternDetails.title} Icon`} />
-          <span>{patternDetails.title}</span>
+        <div className="content-body">
+          <div className="separator"></div>
+
+          <div className="section">
+            <h2 className="section-title">Description</h2>
+            <div className="description-text" dangerouslySetInnerHTML={{ __html: patternDetails.description || "No description available." }} />
+          </div>
+
+          <div className="separator"></div>
+
+          <div className="section">
+            <h2 className="section-title">Linked Solutions</h2>
+            <MappingList
+              sourceDiscussion={patternDetails}
+            />
+          </div>
         </div>
 
-        <div className="separator"></div>
-
-        <div className="pattern-description">
-          <p dangerouslySetInnerHTML={{ __html: patternDetails.description || "No description available." }} />
-        </div>
-
-        <div className="separator"></div>
-
-        <div className="pattern-linked-solutions">
-          <h3>Linked Solutions:</h3>
-          <MappingList
-            sourceNumber={patternDetails.number}
-            linkedNumbers={patternDetails.mappings}
-            sourceCategory="patterns"
-          />
-        </div>
-
-        <div className="separator"></div>
-
-        <div className="pattern-meta">
-          <p>
-            <span className="bold">Pattern Reference:</span> {patternDetails.number}
-          </p>
-          <p>
-            <span className="bold">Created by: </span>
-            <img src={patternDetails.author.avatarUrl} alt={`${patternDetails.author.login} Icon`} />
-            {patternDetails.author.login}
-          </p>
-          <p>
-            <span className="bold">Created on:</span>{" "}
-            {new Date(patternDetails.createdAt).toLocaleDateString()}
-          </p>
-        </div>
+        <footer>
+          <p><span>Reference:</span> {patternDetails.patternRef}</p>
+          <p><span>Created by: </span><img src={patternDetails.author.avatarUrl} alt={`${patternDetails.author.login} Icon`} className="author-avatar" />{patternDetails.author.login}</p>
+          <p><span>Created on:</span> {new Date(patternDetails.createdAt).toLocaleDateString()}</p>
+        </footer>
       </div>
     </div>
   );

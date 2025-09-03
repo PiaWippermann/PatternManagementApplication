@@ -1,0 +1,84 @@
+$padding: 12px 24px;
+$transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+
+// Basis-Stile für alle Buttons
+.button-base {
+    padding: $padding;
+    border-radius: $border-radius;
+    font-weight: $font-weight;
+    cursor: pointer;
+    transition: $transition;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+}
+
+// 1. Primary Button
+.button-primary {
+    @extend .button-base;
+    background-color: $primary-color;
+    color: #fff;
+    border: 1px solid $primary-color;
+
+    &:hover:not(:disabled) {
+        background-color: darken($primary-color, 5%);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+}
+
+// 2. Secondary Button
+.button-secondary {
+    @extend .button-base;
+    background-color: $secondary-color;
+    color: $primary-color;
+    border: 1px solid $secondary-color;
+
+    &:hover:not(:disabled) {
+        background-color: darken($secondary-color, 5%);
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+}
+
+// 3. Ghost Button (Outline)
+.button-ghost {
+    @extend .button-base;
+    background-color: transparent;
+    color: $primary-color;
+    border: 1px solid $primary-color;
+
+    &:hover:not(:disabled) {
+        background-color: $primary-color;
+        color: #fff;
+    }
+
+    &:active:not(:disabled) {
+        transform: translateY(1px);
+    }
+}
+
+// 4. Ghost Button (No outline, just text)
+.button-text {
+    @extend .button-base;
+    background-color: transparent;
+    color: $primary-color;
+    border: none;
+    padding: 0;
+
+    &:hover:not(:disabled) {
+        text-decoration: underline;
+    }
+}

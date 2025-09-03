@@ -5,6 +5,7 @@ import "../../styles/pages/CreateSolution.scss";
 import { useDiscussionData } from "../../context/DiscussionDataContext";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faAnglesLeft } from "@fortawesome/free-solid-svg-icons";
+import LoadingSpinner from "../../components/LoadingSpinner";
 
 const CreateSolution = () => {
   const { loading, error, ids, addNewSolutionImplementationData } = useDiscussionData();
@@ -16,7 +17,7 @@ const CreateSolution = () => {
 
   const close = () => navigate("/solutionImplementations");
 
-  if (loading) return <div>Loading solutions...</div>;
+  if (loading) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
 
   const [title, setTitle] = useState("");
