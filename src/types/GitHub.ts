@@ -1,11 +1,11 @@
 // this file contains types related to GitHub GraphQL API responses
 
-export interface Author {
+export type Author = {
   login: string;
   avatarUrl: string;
 }
 
-export interface Reaction {
+export type Reaction = {
   content: string;
   user: {
     name: string;
@@ -13,7 +13,7 @@ export interface Reaction {
   };
 }
 
-export interface Comment {
+export type Comment = {
   id: string;
   body: string;
   publishedAt: string;
@@ -23,12 +23,12 @@ export interface Comment {
   };
 }
 
-export interface PageInfo {
+export type PageInfo = {
   endCursor: string | null;
   hasNextPage: boolean;
 };
 
-export interface DiscussionCategory {
+export type DiscussionCategory = {
   id: string;
   name: string;
   description: string;

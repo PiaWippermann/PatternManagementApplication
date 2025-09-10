@@ -13,8 +13,7 @@ const repo = import.meta.env.VITE_REPO_NAME;
 const endpoint = import.meta.env.VITE_GITHUB_ENDPOINT;
 
 // for now, we use the PAT token, but in future we want to implement OAuth flow
-const token =
-  localStorage.getItem("github_auth_token") || import.meta.env.VITE_GITHUB_PAT;
+const token = import.meta.env.VITE_GITHUB_PAT;
 
 // initialize the GraphQL client with the endpoint and authorization header
 const client = new GraphQLClient(endpoint, {

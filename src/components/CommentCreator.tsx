@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import styles from "./Comment.module.scss";
 import { createDiscussionComment } from '../api/githubQueries';
-import { Comment } from '../types/GitHub';
+import type { Comment } from '../types/GitHub';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faPaperPlane } from '@fortawesome/free-solid-svg-icons';
 
 export default function CommentCreator({
     discussionId,
@@ -29,15 +31,19 @@ export default function CommentCreator({
     };
 
     return (
-        <form className={styles.commentCard} onSubmit={handleSubmit}>
+        <form className={styles.commentCreator} onSubmit={handleSubmit}>
             <textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Write a comment"
-                className={styles.body}
+                placeholder="Schreibe einen Kommentar..."
+                className={styles.commentTextarea}
             />
-            <button type="submit" className={styles.submitButton}>
-                Kommentar erstellen
+            <button
+                type="submit"
+                className={styles.submitButton}
+                disabled={!commentText.trim()}
+            >
+                <FontAwesomeIcon icon={faPaperPlane} />
             </button>
         </form>
     );

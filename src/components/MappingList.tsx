@@ -282,8 +282,8 @@ const MappingList: React.FC<MappingListProps> = ({ sourceDiscussion }) => {
                 <div className={styles.mappingListContainer}>
                     <h2 className={styles.creationTitle}>{selectedTargetOptionDetails.title}</h2>
                     <p>{selectedTargetOptionDetails.description}</p>
-                    <button className="button-primary" onClick={() => onCreateMapping(selectedTargetOptionDetails)}>Create Mapping</button>
-                    <button className="button-secondary" onClick={() => setSelectedTargetOptionDetails(undefined)}>Back to selection</button>
+                    <button className={styles.createButton} onClick={() => onCreateMapping(selectedTargetOptionDetails)}>Create Mapping</button>
+                    <button className={styles.createButton} onClick={() => setSelectedTargetOptionDetails(undefined)}>Back to selection</button>
                 </div>
             );
         }
@@ -311,7 +311,7 @@ const MappingList: React.FC<MappingListProps> = ({ sourceDiscussion }) => {
                     isBackDisabled={isPrevDisabled}
                     loading={loading}
                 />
-                <button className="button-secondary" onClick={() => setIsInAddMappingMode(false)}>Cancel</button>
+                <button className={styles.createButton} onClick={() => setIsInAddMappingMode(false)}>Cancel</button>
             </div>
         );
     }
@@ -331,7 +331,7 @@ const MappingList: React.FC<MappingListProps> = ({ sourceDiscussion }) => {
         return (
             <div className={styles.noItemsContainer}>
                 <p>No mappings found.</p>
-                <button className="button-primary" onClick={() => setIsInAddMappingMode(true)}>Create new mapping</button>
+                <button className={styles.createButton} onClick={() => setIsInAddMappingMode(true)}>Create new mapping</button>
             </div>
         );
     }
@@ -340,7 +340,7 @@ const MappingList: React.FC<MappingListProps> = ({ sourceDiscussion }) => {
     // Option to get details for each mapping including comments
     return (
         <div className={styles.mappingListContainer}>
-            <button className="button-primary" onClick={() => setIsInAddMappingMode(true)}>+ Create new mapping</button>
+            <button className={styles.createButton} onClick={() => setIsInAddMappingMode(true)}>+ Create new mapping</button>
             <ul className={styles.list}>
                 {mappingDiscussions.map((discussion) => (
                     (discussion && (
@@ -381,7 +381,7 @@ const MappingList: React.FC<MappingListProps> = ({ sourceDiscussion }) => {
                                             {discussion?.comments?.pageInfo?.hasNextPage && (
                                                 <button
                                                     onClick={() => onLoadDiscussionComments(discussion?.id)}
-                                                    className="button-primary"
+                                                    className={styles.createButton}
                                                     disabled={isLoadingComments[discussion?.id || '']}
                                                 >
                                                     {isLoadingComments[discussion?.id || ''] ? 'Loading...' : 'Load More Comments'}
@@ -392,7 +392,7 @@ const MappingList: React.FC<MappingListProps> = ({ sourceDiscussion }) => {
                                             {!discussion?.comments?.nodes?.length && !isLoadingComments[discussion?.id || ''] && (
                                                 <button
                                                     onClick={() => onLoadDiscussionComments(discussion?.id)}
-                                                    className="button-primary"
+                                                    className={styles.createButton}
                                                 >
                                                     Load Comments
                                                 </button>

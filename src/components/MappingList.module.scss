@@ -17,6 +17,7 @@
     font-weight: 600;
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
+    margin-bottom: 24px;
 }
 
 .create-button:hover {
@@ -39,6 +40,23 @@
     list-style: none;
     padding: 0;
     margin: 0;
+}
+
+.creationList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+        padding: 1rem;
+        border-bottom: 1px solid $border-color;
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+
+        &:hover {
+            background-color: #f9f9f9;
+        }
+    }
 }
 
 .mappingItem {
